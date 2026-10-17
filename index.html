@@ -319,9 +319,9 @@
   .bp-col .bp-card{animation:fadeUp .6s var(--ease) both}
   .bp-col:nth-child(1) .bp-card{animation-delay:.55s} .bp-col:nth-child(2) .bp-card{animation-delay:.65s} .bp-col:nth-child(3) .bp-card{animation-delay:.75s}
   #app:not([hidden]) header{animation:fadeIn .5s var(--ease) both}
-  #app:not([hidden]) .col{animation:fadeUp .55s var(--ease) both}
-  #app:not([hidden]) .col:nth-child(2){animation-delay:.06s}
-  #app:not([hidden]) .col:nth-child(3){animation-delay:.12s}
+  #board.intro .col{animation:fadeUp .55s var(--ease) both}
+  #board.intro .col:nth-child(2){animation-delay:.06s}
+  #board.intro .col:nth-child(3){animation-delay:.12s}
 
   @media (prefers-reduced-motion: reduce){
     *,*::before,*::after{animation-duration:.01ms!important;animation-delay:0s!important;transition-duration:.01ms!important}
@@ -397,7 +397,7 @@
     </div>
     <div class="progress-top" id="ptop"></div>
   </header>
-  <main id="board"></main>
+  <main id="board" class="intro"></main>
 </div>
 
 <dialog id="dlgHU">
@@ -538,8 +538,19 @@
   let HU = [], HA = [], abierta = null, filtro = '';
   const haDe = id => HA.filter(a => a.hu_id === id);
 
+  const firma = (hu, ha) => JSON.stringify([
+    hu.map(h => [h.id, h.codigo, h.titulo, h.estado, h.ha_esperadas, h.orden, h.notas]),
+    ha.map(a => [a.id, a.hu_id, a.codigo, a.titulo])
+  ]);
+  let cargado = false;
   async function recargar(){
-    try { ({ hu: HU, ha: HA } = await api.load()); render(); if (abierta) renderDrawer(); }
+    try {
+      const datos = await api.load();
+      const igual = cargado && firma(datos.hu, datos.ha) === firma(HU, HA);
+      ({ hu: HU, ha: HA } = datos); cargado = true;
+      if (igual) return;            // nada cambió: no redibujar
+      render(); if (abierta) renderDrawer();
+    }
     catch (e) { console.error(e); toast('Error cargando datos: ' + errMsg(e)); }
   }
 
@@ -754,6 +765,7 @@
         .on('postgres_changes', { event:'*', schema:'public', table:'ha' }, deb).subscribe();
     }
     await recargar();
+    setTimeout(() => $('#board').classList.remove('intro'), 900);
   }
 
   if (DEMO) { iniciarApp(); return; }
