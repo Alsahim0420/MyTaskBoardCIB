@@ -1,0 +1,813 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tablero gestión de tareas</title>
+<script>try{var t=localStorage.getItem('tema');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t;}catch(e){}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700;6..12,800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* Paleta Bancolombia: amarillo #FDDA24, negro #2C2A29 + secundarios */
+    --yellow:#FDDA24; --black:#2C2A29;
+    --bg:#F4F4F4; --panel:#FAFAFA; --card:#ffffff; --ink:#2C2A29; --ink-2:#585655; --ink-3:#8A8887;
+    --line:#E3E3E3; --line-2:#D0D0D0;
+    --todo:#8A8887; --dev:#FDDA24; --done:#00C389;
+    --on-todo:#fff; --on-dev:#2C2A29; --on-done:#fff;
+    --danger:#E4002B;
+    --shadow:0 1px 0 rgba(0,0,0,.04), 0 2px 8px rgba(44,42,41,.07);
+    --mono:'JetBrains Mono', ui-monospace, monospace; --sans:'Nunito Sans', system-ui, sans-serif;
+  }
+  :root{color-scheme:light}
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      color-scheme:dark;
+      --bg:#1E1D1C; --panel:#252423; --card:#2E2D2C; --ink:#F2F2F2; --ink-2:#C4C2C1; --ink-3:#8F8D8C;
+      --line:#3A3938; --line-2:#4A4847; --todo:#8F8D8C; --danger:#FF6B7F;
+      --shadow:0 1px 0 rgba(0,0,0,.3), 0 2px 10px rgba(0,0,0,.25);
+    }
+  }
+  :root[data-theme="dark"]{
+    color-scheme:dark;
+    --bg:#1E1D1C; --panel:#252423; --card:#2E2D2C; --ink:#F2F2F2; --ink-2:#C4C2C1; --ink-3:#8F8D8C;
+    --line:#3A3938; --line-2:#4A4847; --todo:#8F8D8C; --danger:#FF6B7F;
+    --shadow:0 1px 0 rgba(0,0,0,.3), 0 2px 10px rgba(0,0,0,.25);
+  }
+  .ready{color:#00704F}
+  :root[data-theme="dark"] .ready{color:#5FE0B5}
+  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .ready{color:#5FE0B5} }
+
+  /* Selector de tema */
+  .tema{display:inline-flex;border:1px solid var(--line-2);border-radius:999px;overflow:hidden;flex-shrink:0}
+  .tema button{background:none;border:none;padding:5px 11px;font-size:12px;font-weight:700;color:var(--ink-2);display:flex;align-items:center;gap:5px}
+  .tema button[aria-pressed="true"]{background:var(--yellow);color:var(--black)}
+  header .tema{border-color:#4A4847}
+  header .tema button{color:#BDBBBA}
+  header .tema button[aria-pressed="true"]{color:var(--black)}
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px}
+  button,input,textarea,select{font:inherit;color:inherit}
+  button{cursor:pointer}
+  .mono{font-family:var(--mono)}
+  input,textarea{border:1px solid var(--line-2);background:var(--card);border-radius:8px;padding:9px 11px;min-width:0}
+  input:focus,textarea:focus{outline:2px solid var(--yellow);outline-offset:0;border-color:var(--black)}
+
+  .btn{border:none;border-radius:999px;padding:9px 18px;font-weight:800}
+  .btn-y{background:var(--yellow);color:var(--black)}
+  .btn-y:hover{filter:brightness(.95)}
+  .btn-k{background:var(--black);color:#fff}
+  .btn-ghost{background:none;border:1px solid var(--line-2);color:var(--ink)}
+  .btn-danger{background:none;border:1px solid color-mix(in srgb,var(--danger) 50%,transparent);color:var(--danger)}
+  .btn-danger:hover{background:color-mix(in srgb,var(--danger) 8%,transparent)}
+
+  header{position:sticky;top:0;z-index:5;background:var(--black);color:#fff;border-bottom:4px solid var(--yellow);padding:14px 20px 12px}
+  .hrow{display:flex;gap:16px;align-items:center;flex-wrap:wrap;max-width:1400px;margin:0 auto}
+  .brand{display:flex;flex-direction:column;gap:2px;margin-right:auto}
+  .brand small{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--yellow)}
+  .brand h1{margin:0;font-size:20px;font-weight:800;letter-spacing:-.01em;color:#fff}
+  .stats{display:flex;gap:18px}
+  .stat{display:flex;flex-direction:column;align-items:flex-end}
+  .stat b{font-family:var(--mono);font-size:18px;font-weight:600;color:var(--yellow)}
+  .stat span{font-size:11px;color:#BDBBBA;text-transform:uppercase;letter-spacing:.06em}
+  .search{border:1px solid #4A4847;background:#3A3938;color:#fff;border-radius:999px;padding:8px 14px;width:200px;max-width:100%}
+  .search::placeholder{color:#A9A7A6}
+  .user{display:flex;gap:8px;align-items:center;font-size:12px;color:#BDBBBA}
+  .ghost{background:none;border:1px solid #6A6867;color:#fff;border-radius:999px;padding:6px 12px;font-size:13px}
+  .ghost:hover{border-color:var(--yellow);color:var(--yellow)}
+  .demo{font-size:10.5px;font-weight:800;letter-spacing:.06em;background:var(--yellow);color:var(--black);padding:3px 8px;border-radius:999px;vertical-align:middle}
+  .progress-top{max-width:1400px;margin:12px auto 0;height:6px;border-radius:4px;background:#4A4847;overflow:hidden;display:flex}
+  .progress-top i{display:block;height:100%}
+
+  main{max-width:1400px;margin:0 auto;padding:18px 20px 60px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+  @media (max-width:900px){main{grid-template-columns:1fr}}
+  .col{background:var(--panel);border:1px solid var(--line);border-radius:12px;display:flex;flex-direction:column;min-height:200px}
+  .col-h{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line)}
+  .dot{width:10px;height:10px;border-radius:50%;box-shadow:0 0 0 1px rgba(0,0,0,.12)}
+  .col-h h2{margin:0;font-size:13px;font-weight:800;letter-spacing:.05em;text-transform:uppercase}
+  .count{margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--ink-3)}
+  .list{padding:10px;display:flex;flex-direction:column;gap:9px;flex:1;transition:background .15s}
+  .list.over{background:color-mix(in srgb,var(--yellow) 14%,transparent);outline:2px dashed var(--yellow);outline-offset:-6px;border-radius:10px}
+  .empty{font-size:13px;color:var(--ink-3);text-align:center;padding:24px 8px;border:1px dashed var(--line-2);border-radius:9px}
+  .add-hu{background:none;border:1px dashed var(--line-2);border-radius:9px;padding:10px;color:var(--ink-2);font-weight:700;font-size:13px}
+  .add-hu:hover{border-color:var(--black);color:var(--ink);background:color-mix(in srgb,var(--yellow) 12%,transparent)}
+
+  .card{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--c,var(--todo));border-radius:9px;padding:11px 12px 10px;box-shadow:var(--shadow);cursor:grab;user-select:none}
+  .card:hover{border-color:var(--line-2);border-left-color:var(--c,var(--todo))}
+  .card.dragging{opacity:.4}
+  .card-top{display:flex;align-items:center;gap:8px}
+  .hu-id{font-family:var(--mono);font-size:12px;color:var(--ink-2);font-weight:500}
+  .ready{font-size:10.5px;font-weight:800;background:color-mix(in srgb,var(--done) 16%,transparent);padding:2px 8px;border-radius:999px}
+  .card-t{margin:5px 0 9px;font-size:14.5px;line-height:1.35;font-weight:700}
+  .card-b{display:flex;align-items:center;gap:10px}
+  .bar{flex:1;height:5px;border-radius:3px;background:var(--line);overflow:hidden}
+  .bar i{display:block;height:100%;background:var(--c,var(--todo));border-radius:3px}
+  .bar.full i{background:var(--done)}
+  .ha-n{font-family:var(--mono);font-size:12px;color:var(--ink-2);white-space:nowrap}
+  .mv{display:flex;gap:4px}
+  .mv button{border:1px solid var(--line);background:none;border-radius:5px;width:24px;height:22px;font-size:12px;color:var(--ink-3);padding:0}
+  .mv button:hover:not(:disabled){color:var(--ink);border-color:var(--ink-3)}
+  .mv button:disabled{opacity:.3;cursor:default}
+
+  /* Drawer */
+  .scrim{position:fixed;inset:0;background:rgba(10,8,5,.35);opacity:0;pointer-events:none;transition:opacity .2s;z-index:20}
+  .scrim.on{opacity:1;pointer-events:auto}
+  aside{position:fixed;top:0;right:0;height:100%;width:min(480px,100%);background:var(--panel);border-left:1px solid var(--line);transform:translateX(100%);transition:transform .22s ease;z-index:21;display:flex;flex-direction:column}
+  aside.on{transform:none}
+  .d-h{padding:16px 20px 14px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
+  .d-h .row{display:flex;align-items:center;gap:10px}
+  .d-h .cod{font-family:var(--mono);font-size:13px;width:140px;padding:5px 9px}
+  .d-h .tit{font-size:17px;font-weight:800;width:100%;border-color:transparent;background:transparent;padding:6px 8px;margin-left:-8px}
+  .d-h .tit:hover{border-color:var(--line-2)}
+  .x{margin-left:auto;background:none;border:none;font-size:22px;color:var(--ink-3);line-height:1}
+  .d-b{padding:16px 20px 40px;overflow:auto;flex:1;display:flex;flex-direction:column;gap:22px}
+  .sec h4{margin:0 0 9px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);font-weight:700;display:flex;align-items:center;gap:8px}
+  .seg{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--line-2);border-radius:8px;overflow:hidden}
+  .seg button{background:var(--card);border:none;border-right:1px solid var(--line-2);padding:9px 6px;font-size:13px}
+  .seg button:last-child{border-right:none}
+  .seg button.on{background:var(--c);color:var(--fg,#fff);font-weight:800}
+  .meta{display:flex;align-items:center;gap:10px;font-size:14px}
+  .num{width:74px;font-family:var(--mono);padding:6px 8px}
+  .ha-list{display:flex;flex-direction:column;gap:6px;margin:0;padding:0;list-style:none}
+  .ha{display:flex;align-items:flex-start;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:9px 10px}
+  .ha .i{font-family:var(--mono);font-size:11px;color:var(--ink-3);width:18px;padding-top:2px}
+  .ha .c{font-family:var(--mono);font-size:12.5px;font-weight:600;color:var(--ink);background:color-mix(in srgb,var(--yellow) 40%,transparent);padding:1px 6px;border-radius:4px;white-space:nowrap}
+  .ha .t{flex:1;font-size:14px;line-height:1.35}
+  .ha .t.vacio{color:var(--ink-3);font-style:italic}
+  .ha .del{background:none;border:none;color:var(--ink-3);font-size:16px;line-height:1;padding:0 2px}
+  .ha .del:hover{color:var(--danger)}
+  .add{display:grid;grid-template-columns:130px 1fr auto;gap:6px;margin-top:8px}
+  textarea{width:100%;min-height:80px;resize:vertical}
+  .hist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;border-left:1px solid var(--line-2);margin-left:4px}
+  .hist li{position:relative;padding:0 0 12px 14px;font-size:13px;color:var(--ink-2)}
+  .hist li::before{content:"";position:absolute;left:-4px;top:5px;width:7px;height:7px;border-radius:50%;background:var(--line-2)}
+  .hist time{display:block;font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+  .hint{font-size:12px;color:var(--ink-3)}
+
+  /* Modal nueva HU */
+  dialog{border:none;border-top:6px solid var(--yellow);border-radius:14px;padding:0;width:min(440px,calc(100% - 32px));background:var(--panel);color:var(--ink);box-shadow:0 20px 50px rgba(0,0,0,.25)}
+  dialog::backdrop{background:rgba(10,8,5,.45)}
+  dialog form{padding:22px;display:flex;flex-direction:column;gap:12px}
+  dialog h3{margin:0;font-size:18px}
+  label{display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:700;color:var(--ink-2)}
+  .row-end{display:flex;justify-content:flex-end;gap:8px;margin-top:4px}
+
+  /* Login */
+  .login{min-height:100vh;display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);background:var(--bg)}
+  @media (max-width:900px){.login{grid-template-columns:1fr}.brand-pane{display:none!important}}
+  .brand-pane{position:relative;overflow:hidden;background:var(--black);color:#fff;padding:40px 56px;display:flex;flex-direction:column}
+  .brand-pane::before{content:"";position:absolute;inset:0;background:
+      radial-gradient(1200px 500px at 110% 120%, rgba(253,218,36,.16), transparent 60%),
+      repeating-linear-gradient(135deg, rgba(255,255,255,.035) 0 1px, transparent 1px 22px);pointer-events:none}
+  .brand-pane::after{content:"";position:absolute;right:-120px;top:-120px;width:360px;height:360px;border-radius:50%;border:56px solid var(--yellow);opacity:.95}
+  .bp-logo{position:relative;display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.01em;font-size:15px}
+  .bp-mark{width:30px;height:30px;border-radius:8px;background:var(--yellow);display:grid;place-items:center}
+  .bp-mark i{display:block;width:14px;height:14px;border:3px solid var(--black);border-radius:3px;border-top-width:6px}
+  .bp-body{position:relative;margin:auto 0;max-width:470px;padding:40px 0}
+  .bp-kicker{font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--yellow)}
+  .bp-title{margin:14px 0 14px;font-size:clamp(30px,3.4vw,44px);line-height:1.08;font-weight:800;letter-spacing:-.02em}
+  .bp-title span{color:var(--yellow)}
+  .bp-sub{margin:0;color:#C9C7C6;font-size:16px;line-height:1.55;max-width:420px}
+  .bp-feats{list-style:none;margin:28px 0 0;padding:0;display:flex;flex-direction:column;gap:12px}
+  .bp-feats li{display:flex;gap:12px;align-items:flex-start;font-size:14.5px;color:#E6E4E3}
+  .bp-feats svg{flex:none;margin-top:1px}
+  .bp-mini{position:relative;margin-top:34px;display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:420px}
+  .bp-col{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:9px;display:flex;flex-direction:column;gap:7px}
+  .bp-col b{font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:#A9A7A6;display:flex;align-items:center;gap:6px}
+  .bp-col b::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--d)}
+  .bp-card{height:30px;border-radius:6px;background:rgba(255,255,255,.09);border-left:3px solid var(--d)}
+  .bp-card.s{height:22px}
+  .bp-foot{position:relative;font-size:12px;color:#8F8D8C}
+
+  .form-pane{position:relative;display:flex;flex-direction:column;padding:28px 32px}
+  .fp-top{display:flex;align-items:center;justify-content:flex-end;gap:12px}
+  .fp-top .bp-logo{margin-right:auto;color:var(--ink);display:none}
+  @media (max-width:900px){.fp-top .bp-logo{display:flex}}
+  .fp-center{flex:1;display:grid;place-items:center;padding:24px 0}
+  .login form{width:min(380px,100%);display:flex;flex-direction:column;gap:14px}
+  .login h1{margin:0;font-size:28px;font-weight:800;letter-spacing:-.02em}
+  .login .lead{margin:-6px 0 6px;color:var(--ink-2);font-size:15px;line-height:1.5}
+  .login input{padding:12px 14px;border-radius:10px;font-size:15px}
+  .login .btn-y{padding:13px 18px;font-size:15px;margin-top:4px}
+  .tabs{display:grid;grid-template-columns:1fr 1fr;background:color-mix(in srgb,var(--ink) 6%,transparent);border-radius:12px;padding:4px;gap:4px}
+  .tabs button{background:none;border:none;padding:9px;border-radius:9px;font-weight:700;font-size:13.5px;color:var(--ink-2)}
+  .tabs button.on{background:var(--card);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08),0 2px 8px rgba(0,0,0,.06)}
+  .fp-note{display:flex;gap:8px;align-items:center;font-size:12.5px;color:var(--ink-3);margin-top:4px}
+  .fp-foot{font-size:12px;color:var(--ink-3);text-align:center}
+  .msg{font-size:13px;line-height:1.4;min-height:1em}
+  .login .msg:empty{display:none}
+  .msg.err{color:var(--danger)}
+  .msg.ok{color:#00704F}
+
+  /* Selector de tema (íconos) en el login */
+  .tema-ico{display:inline-flex;gap:2px;padding:3px;border-radius:999px;background:color-mix(in srgb,var(--ink) 6%,transparent);border:1px solid var(--line)}
+  .tema-ico button{width:34px;height:30px;border:none;border-radius:999px;background:none;color:var(--ink-3);display:grid;place-items:center}
+  .tema-ico button:hover{color:var(--ink)}
+  .tema-ico button[aria-pressed="true"]{background:var(--card);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.1),0 2px 6px rgba(0,0,0,.08)}
+  .tema-ico button[aria-pressed="true"] svg{color:#C8A400}
+  :root[data-theme="dark"] .tema-ico button[aria-pressed="true"] svg{color:var(--yellow)}
+  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .tema-ico button[aria-pressed="true"] svg{color:var(--yellow)} }
+
+  .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--black);color:#fff;border-left:4px solid var(--yellow);padding:9px 14px;border-radius:8px;font-size:13px;z-index:40;opacity:0;transition:opacity .2s;pointer-events:none;max-width:calc(100% - 32px)}
+  .toast.on{opacity:1}
+
+  /* ============ Movimiento ============ */
+  :root{--ease:cubic-bezier(.2,.8,.2,1);--ease-io:cubic-bezier(.65,0,.35,1);--spring:cubic-bezier(.34,1.56,.64,1)}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+  @keyframes cardIn{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:none}}
+  @keyframes barGrow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+  @keyframes haIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:none}}
+  @keyframes dlgIn{from{opacity:0;transform:translateY(14px) scale(.96)}to{opacity:1;transform:none}}
+  @keyframes dlgOut{to{opacity:0;transform:translateY(8px) scale(.97)}}
+  @keyframes ringIn{from{opacity:0;transform:scale(.6) rotate(-40deg)}to{opacity:.95;transform:none}}
+  @keyframes bump{40%{transform:scale(1.18)}}
+  @keyframes shake{20%,60%{transform:translateX(-5px)}40%,80%{transform:translateX(5px)}}
+
+  /* Transición de colores al cambiar de tema (respaldo sin View Transitions) */
+  html.tema-anim, html.tema-anim *, html.tema-anim *::before, html.tema-anim *::after{
+    transition:background-color .5s var(--ease-io),color .5s var(--ease-io),border-color .5s var(--ease-io),box-shadow .5s var(--ease-io),fill .5s,stroke .5s,transform .5s var(--ease-io)!important}
+  /* Revelado circular con View Transitions */
+  html.vt-tema::view-transition-old(root),html.vt-tema::view-transition-new(root){animation:none;mix-blend-mode:normal}
+  html.vt-tema::view-transition-old(root){z-index:1}
+  html.vt-tema::view-transition-new(root){z-index:2}
+  html.vt-tema .card{view-transition-name:none!important}
+  ::view-transition-group(*){animation-duration:.45s;animation-timing-function:var(--ease)}
+
+  /* Selector de tema con indicador deslizante */
+  .tema-ico{position:relative}
+  .tema-ico::before{content:"";position:absolute;top:3px;left:3px;width:34px;height:30px;border-radius:999px;background:var(--card);
+    box-shadow:0 1px 2px rgba(0,0,0,.12),0 3px 8px rgba(0,0,0,.1);transition:transform .5s var(--spring),background-color .4s}
+  .tema-ico[data-active="dark"]::before{transform:translateX(36px)}
+  .tema-ico button{position:relative;z-index:1;transition:color .35s var(--ease)}
+  .tema-ico button[aria-pressed="true"]{background:none!important;box-shadow:none!important}
+  .tema-ico svg{transition:transform .6s var(--spring),color .35s}
+  .tema-ico [data-tema="light"] svg{transform:rotate(-90deg) scale(.8)}
+  .tema-ico [data-tema="dark"] svg{transform:rotate(30deg) scale(.8)}
+  .tema-ico [aria-pressed="true"] svg{transform:none}
+  .tema{position:relative}
+  .tema::before{content:"";position:absolute;top:0;bottom:0;left:0;width:86px;border-radius:999px;background:var(--yellow);transition:transform .5s var(--spring)}
+  .tema[data-active="dark"]::before{transform:translateX(86px)}
+  .tema button{position:relative;z-index:1;width:86px;justify-content:center;transition:color .35s var(--ease)}
+  .tema button[aria-pressed="true"]{background:none!important}
+
+  /* Pestañas del login con indicador deslizante */
+  .tabs{position:relative}
+  .tabs::before{content:"";position:absolute;top:4px;bottom:4px;left:4px;width:calc(50% - 6px);border-radius:9px;background:var(--yellow);
+    box-shadow:0 1px 2px rgba(0,0,0,.1),0 4px 12px -4px rgba(253,218,36,.7);transition:transform .45s var(--spring)}
+  .tabs[data-active="registro"]::before{transform:translateX(calc(100% + 4px))}
+  .tabs button{position:relative;z-index:1;transition:color .3s var(--ease)}
+  .tabs button.on{background:none!important;box-shadow:none!important}
+  .tabs button.on{color:var(--black);font-weight:800}
+  .tabs button:not(.on):hover{color:var(--ink)}
+  #loginTitle,#loginIntro{transition:opacity .2s var(--ease),transform .2s var(--ease)}
+  .swap{opacity:0;transform:translateY(-4px)}
+
+  /* Botones, campos y tarjetas */
+  .btn,.ghost,.add-hu,.mv button,.seg button,.ha .del,.x,.tabs button{transition:transform .18s var(--ease),filter .2s,background-color .25s,color .25s,border-color .25s,box-shadow .25s}
+  .btn:active,.ghost:active,.add-hu:active{transform:scale(.97)}
+  .btn-y{box-shadow:0 1px 0 rgba(0,0,0,.04)}
+  .btn-y:hover{box-shadow:0 6px 18px -6px rgba(253,218,36,.9)}
+  input,textarea{transition:border-color .2s,box-shadow .25s var(--ease),background-color .3s}
+  input:focus,textarea:focus{box-shadow:0 0 0 4px color-mix(in srgb,var(--yellow) 28%,transparent)}
+  .card{transition:transform .25s var(--ease),box-shadow .25s var(--ease),border-color .25s,opacity .2s}
+  .card:hover{transform:translateY(-2px);box-shadow:0 2px 4px rgba(0,0,0,.05),0 10px 24px -8px rgba(44,42,41,.22)}
+  .card:active{cursor:grabbing}
+  .card.enter{animation:cardIn .5s var(--ease) both;animation-delay:calc(var(--i,0) * 40ms)}
+  .card.enter .bar i{transform-origin:left;animation:barGrow .8s var(--ease) both;animation-delay:calc(var(--i,0) * 40ms + .2s)}
+  .card.dragging{opacity:.35;transform:scale(.98)}
+  .list{transition:background-color .2s,outline-color .2s}
+  .progress-top i{transition:width .7s var(--ease)}
+  .stat b.bump{display:inline-block;animation:bump .45s var(--spring)}
+  .ha.enter{animation:haIn .4s var(--ease) both;animation-delay:calc(var(--i,0) * 35ms)}
+  .seg button.on{transition:background-color .35s var(--ease),color .35s}
+
+  /* Panel lateral, modal y avisos */
+  .scrim{transition:opacity .35s var(--ease),backdrop-filter .35s;backdrop-filter:blur(0)}
+  .scrim.on{backdrop-filter:blur(3px)}
+  aside{transition:transform .5s cubic-bezier(.32,.72,0,1)!important;box-shadow:-20px 0 50px -20px rgba(0,0,0,.35)}
+  aside:not(.on){box-shadow:none}
+  aside.entrando .d-h,aside.entrando .sec{animation:fadeUp .5s var(--ease) both}
+  aside.entrando .sec:nth-child(1){animation-delay:.08s} aside.entrando .sec:nth-child(2){animation-delay:.12s}
+  aside.entrando .sec:nth-child(3){animation-delay:.16s} aside.entrando .sec:nth-child(4){animation-delay:.2s}
+  aside.entrando .sec:nth-child(5){animation-delay:.24s} aside.entrando .sec:nth-child(6){animation-delay:.28s}
+  dialog[open]{animation:dlgIn .4s var(--spring)}
+  dialog[open]::backdrop{animation:fadeIn .3s var(--ease)}
+  dialog.cerrando{animation:dlgOut .2s var(--ease) forwards}
+  .toast{transform:translate(-50%,16px) scale(.96)!important;transition:opacity .3s var(--ease),transform .4s var(--spring)!important}
+  .toast.on{transform:translate(-50%,0) scale(1)!important}
+  .msg.err:not(:empty){animation:shake .4s var(--ease)}
+
+  /* Entrada del login y del tablero */
+  .login:not([hidden]) .brand-pane::after{animation:ringIn 1.1s var(--ease) both}
+  .login:not([hidden]) .bp-logo,.login:not([hidden]) .bp-body>*,.login:not([hidden]) .bp-foot{animation:fadeUp .7s var(--ease) both}
+  .login:not([hidden]) .bp-body>*:nth-child(1){animation-delay:.1s}
+  .login:not([hidden]) .bp-body>*:nth-child(2){animation-delay:.18s}
+  .login:not([hidden]) .bp-body>*:nth-child(3){animation-delay:.26s}
+  .login:not([hidden]) .bp-body>*:nth-child(4){animation-delay:.34s}
+  .login:not([hidden]) .bp-body>*:nth-child(5){animation-delay:.42s}
+  .login:not([hidden]) .bp-foot{animation-delay:.5s}
+  .login:not([hidden]) .fp-center form>*{animation:fadeUp .6s var(--ease) both}
+  .login:not([hidden]) .fp-center form>*:nth-child(1){animation-delay:.15s}
+  .login:not([hidden]) .fp-center form>*:nth-child(2){animation-delay:.2s}
+  .login:not([hidden]) .fp-center form>*:nth-child(3){animation-delay:.25s}
+  .login:not([hidden]) .fp-center form>*:nth-child(4){animation-delay:.3s}
+  .login:not([hidden]) .fp-center form>*:nth-child(5){animation-delay:.35s}
+  .login:not([hidden]) .fp-center form>*:nth-child(6){animation-delay:.4s}
+  .login:not([hidden]) .fp-center form>*:nth-child(n+7){animation-delay:.45s}
+  .login:not([hidden]) .fp-top{animation:fadeIn .6s var(--ease) both .2s}
+  .bp-col .bp-card{animation:fadeUp .6s var(--ease) both}
+  .bp-col:nth-child(1) .bp-card{animation-delay:.55s} .bp-col:nth-child(2) .bp-card{animation-delay:.65s} .bp-col:nth-child(3) .bp-card{animation-delay:.75s}
+  #app:not([hidden]) header{animation:fadeIn .5s var(--ease) both}
+  #app:not([hidden]) .col{animation:fadeUp .55s var(--ease) both}
+  #app:not([hidden]) .col:nth-child(2){animation-delay:.06s}
+  #app:not([hidden]) .col:nth-child(3){animation-delay:.12s}
+
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{animation-duration:.01ms!important;animation-delay:0s!important;transition-duration:.01ms!important}
+  }
+  [hidden]{display:none!important}
+</style>
+</head>
+<body>
+
+<div id="login" class="login" hidden>
+  <section class="brand-pane" aria-hidden="true">
+    <div class="bp-logo"><span class="bp-mark"><i></i></span>Gestión de tareas</div>
+    <div class="bp-body">
+      <div class="bp-kicker">Historias de usuario · HA</div>
+      <h2 class="bp-title">Tus HU y sus HA,<br><span>bajo control.</span></h2>
+      <p class="bp-sub">Lleva el seguimiento y la trazabilidad de cada historia de usuario: qué HA ya creaste, cuántas faltan y en qué estado va cada una.</p>
+      <ul class="bp-feats">
+        <li><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#FDDA24"/><path d="M7 12.5l3.2 3.2L17 9" fill="none" stroke="#2C2A29" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Tablero por estados: por hacer, en desarrollo y creada</li>
+        <li><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#FDDA24"/><path d="M7 12.5l3.2 3.2L17 9" fill="none" stroke="#2C2A29" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>HA esperadas según la complejidad de cada HU</li>
+        <li><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#FDDA24"/><path d="M7 12.5l3.2 3.2L17 9" fill="none" stroke="#2C2A29" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Historial automático de cada cambio</li>
+      </ul>
+      <div class="bp-mini">
+        <div class="bp-col" style="--d:#8A8887"><b>Por hacer</b><span class="bp-card"></span><span class="bp-card s"></span></div>
+        <div class="bp-col" style="--d:#FDDA24"><b>En desarrollo</b><span class="bp-card"></span></div>
+        <div class="bp-col" style="--d:#00C389"><b>Creada</b><span class="bp-card s"></span><span class="bp-card"></span><span class="bp-card s"></span></div>
+      </div>
+    </div>
+    <div class="bp-foot">Accede desde cualquier dispositivo · Cambios en tiempo real</div>
+  </section>
+
+  <section class="form-pane">
+    <div class="fp-top">
+      <div class="bp-logo"><span class="bp-mark"><i></i></span>Gestión de tareas</div>
+      <div class="tema-ico" role="group" aria-label="Tema de la interfaz">
+        <button type="button" data-tema="light" aria-pressed="false" title="Tema claro" aria-label="Tema claro"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg></button>
+        <button type="button" data-tema="dark" aria-pressed="false" title="Tema oscuro" aria-label="Tema oscuro"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg></button>
+      </div>
+    </div>
+    <div class="fp-center">
+      <form id="loginForm" novalidate>
+        <h1 id="loginTitle">Bienvenido de nuevo</h1>
+        <p class="lead" id="loginIntro">Ingresa para ver y gestionar tus HU y HA.</p>
+        <div class="tabs" role="tablist" data-active="ingresar">
+          <button type="button" data-modo="ingresar" class="on" role="tab">Ingresar</button>
+          <button type="button" data-modo="registro" role="tab">Crear cuenta</button>
+        </div>
+        <label>Correo<input id="email" type="email" placeholder="tu@correo.com" required autocomplete="email"></label>
+        <label>Contraseña<input id="pass" type="password" placeholder="Mínimo 6 caracteres" required minlength="6" autocomplete="current-password"></label>
+        <button id="loginBtn" class="btn btn-y" type="submit">Ingresar</button>
+        <p id="loginMsg" class="msg" aria-live="polite"></p>
+        <div class="fp-note"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="4.5" y="10.5" width="15" height="10" rx="2.2"/><path d="M8 10.5V7.8a4 4 0 0 1 8 0v2.7"/></svg>Tus HU son privadas: solo tú puedes verlas.</div>
+      </form>
+    </div>
+    <div class="fp-foot">Tablero gestión de tareas</div>
+  </section>
+</div>
+
+<div id="app" hidden>
+  <header>
+    <div class="hrow">
+      <div class="brand">
+        <small>Historias de usuario · HA</small>
+        <h1>Tablero gestión de tareas <span id="demoTag" class="demo" hidden>MODO DEMO</span></h1>
+      </div>
+      <div class="stats">
+        <div class="stat"><b id="sCreadas">0/0</b><span>HU creadas</span></div>
+        <div class="stat"><b id="sHA">0</b><span>HA registradas</span></div>
+      </div>
+      <input id="q" class="search" type="search" placeholder="Buscar ID o título…">
+      <button id="nuevaHU" class="btn btn-y" type="button">+ Nueva HU</button>
+      <div class="tema" role="group" aria-label="Tema de la interfaz"><button type="button" data-tema="light" aria-pressed="false">☀ Claro</button><button type="button" data-tema="dark" aria-pressed="false">☾ Oscuro</button></div>
+      <div class="user"><span id="who"></span><button id="logout" class="ghost" hidden>Salir</button></div>
+    </div>
+    <div class="progress-top" id="ptop"></div>
+  </header>
+  <main id="board"></main>
+</div>
+
+<dialog id="dlgHU">
+  <form id="formHU" method="dialog">
+    <h3>Nueva HU</h3>
+    <label>ID de la HU *<input id="nCod" class="mono" required inputmode="numeric" placeholder="Ej. 7906266"></label>
+    <label>Título *<input id="nTit" required placeholder="Ej. Consultar movimientos para cambiar cuotas"></label>
+    <label>HA esperadas según complejidad<input id="nMeta" class="num" type="number" min="0" placeholder="—"></label>
+    <p id="nMsg" class="msg err"></p>
+    <div class="row-end">
+      <button type="button" class="btn btn-ghost" id="nCancel">Cancelar</button>
+      <button type="submit" class="btn btn-y" value="ok">Crear HU</button>
+    </div>
+  </form>
+</dialog>
+
+<div id="scrim" class="scrim"></div>
+<aside id="drawer" aria-hidden="true"></aside>
+<div id="toast" class="toast"></div>
+
+<script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(() => {
+  const ESTADOS = [
+    { id:'por_hacer',     nombre:'Por hacer',     color:'var(--todo)', fg:'var(--on-todo)' },
+    { id:'en_desarrollo', nombre:'En desarrollo', color:'var(--dev)',  fg:'var(--on-dev)'  },
+    { id:'creada',        nombre:'Creada',        color:'var(--done)', fg:'var(--on-done)' },
+  ];
+  const cfg = window.TABLERO_CONFIG || {};
+  const DEMO = !cfg.SUPABASE_URL || !cfg.SUPABASE_ANON_KEY || !window.supabase;
+  const $ = s => document.querySelector(s);
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const nombreEstado = id => (ESTADOS.find(e => e.id === id) || {}).nombre || id;
+  const toast = m => { const t = $('#toast'); t.textContent = m; t.classList.add('on'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('on'), 2600); };
+  // ---------------- Tema claro / oscuro ----------------
+  const sistemaOscuro = () => window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches;
+  const temaActual = () => document.documentElement.dataset.theme || (sistemaOscuro() ? 'dark' : 'light');
+  const sinMovimiento = () => window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function pintarTema(){
+    const t = temaActual();
+    document.querySelectorAll('[data-tema]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.tema === t)));
+    document.querySelectorAll('.tema, .tema-ico').forEach(g => g.dataset.active = t);
+  }
+  function aplicarTema(t, x, y){
+    const html = document.documentElement;
+    if (temaActual() === t) return;
+    try { localStorage.setItem('tema', t); } catch {}
+    const cambiar = () => { html.dataset.theme = t; pintarTema(); };
+    if (sinMovimiento()) return cambiar();
+    if (!document.startViewTransition) {
+      html.classList.add('tema-anim'); cambiar();
+      clearTimeout(aplicarTema._t); aplicarTema._t = setTimeout(() => html.classList.remove('tema-anim'), 600);
+      return;
+    }
+    html.classList.add('vt-tema');
+    const vt = document.startViewTransition(cambiar);
+    vt.ready.then(() => {
+      const r = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
+      html.animate({ clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${r}px at ${x}px ${y}px)`] },
+        { duration: 700, easing: 'cubic-bezier(.65,0,.35,1)', pseudoElement: '::view-transition-new(root)' });
+    }).catch(() => {});
+    vt.finished.finally(() => html.classList.remove('vt-tema'));
+  }
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-tema]'); if (!b) return;
+    const r = b.getBoundingClientRect();
+    aplicarTema(b.dataset.tema, r.left + r.width / 2, r.top + r.height / 2);
+  });
+  try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', pintarTema); } catch {}
+  pintarTema();
+
+  const errMsg = e => {
+    const m = e?.message || String(e);
+    if (e?.code === '23505' || /duplicate key/i.test(m)) return 'Ese ID ya existe';
+    return m;
+  };
+
+  // ---------------- Capa de datos ----------------
+  let sb = null, usuario = null;
+  const api = DEMO ? demoApi() : supaApi();
+
+  function demoApi(){
+    const KEY = 'tablero-tareas-demo-v2';
+    const read = () => { try { return JSON.parse(localStorage.getItem(KEY)); } catch { return null; } };
+    const write = d => { try { localStorage.setItem(KEY, JSON.stringify(d)); } catch {} };
+    let db = read() || { hu: [], ha: [], hist: [] };
+    const uid = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()));
+    const log = (hu_id, evento, detalle) => db.hist.push({ id: uid(), hu_id, evento, detalle, usuario:'demo', created_at:new Date().toISOString() });
+    return {
+      async load(){ return JSON.parse(JSON.stringify({ hu: db.hu, ha: db.ha })); },
+      async createHU(row){
+        if (db.hu.some(h => h.codigo === row.codigo)) throw { code:'23505', message:'duplicate key' };
+        db.hu.push({ id: uid(), estado:'por_hacer', notas:'', ...row }); write(db);
+      },
+      async updateHU(id, patch){
+        const h = db.hu.find(x => x.id === id);
+        if (patch.codigo && db.hu.some(x => x.id !== id && x.codigo === patch.codigo)) throw { code:'23505', message:'duplicate key' };
+        if (patch.estado && patch.estado !== h.estado) log(id,'estado',`${h.estado} → ${patch.estado}`);
+        if ('ha_esperadas' in patch && patch.ha_esperadas !== h.ha_esperadas) log(id,'ha_esperadas',`${h.ha_esperadas ?? '—'} → ${patch.ha_esperadas ?? '—'}`);
+        Object.assign(h, patch); write(db);
+      },
+      async deleteHU(id){ db.hu = db.hu.filter(x => x.id !== id); db.ha = db.ha.filter(x => x.hu_id !== id); db.hist = db.hist.filter(x => x.hu_id !== id); write(db); },
+      async addHA(hu_id, codigo, titulo){
+        if (db.ha.some(a => a.hu_id === hu_id && a.codigo === codigo)) throw { code:'23505', message:'duplicate key' };
+        db.ha.push({ id: uid(), hu_id, codigo, titulo: titulo || null, created_at:new Date().toISOString() });
+        log(hu_id,'ha_agregada',codigo + (titulo ? ' · ' + titulo : '')); write(db);
+      },
+      async delHA(id){
+        const a = db.ha.find(x => x.id === id); db.ha = db.ha.filter(x => x.id !== id);
+        if (a) log(a.hu_id,'ha_eliminada',a.codigo + (a.titulo ? ' · ' + a.titulo : '')); write(db);
+      },
+      async historial(hu_id){ return db.hist.filter(x => x.hu_id === hu_id).slice().reverse(); },
+    };
+  }
+
+  function supaApi(){
+    sb = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY);
+    const chk = ({ data, error }) => { if (error) throw error; return data; };
+    return {
+      async load(){
+        const [hu, ha] = await Promise.all([
+          sb.from('hu').select('*').order('orden'),
+          sb.from('ha').select('*').order('created_at'),
+        ]);
+        return { hu: chk(hu), ha: chk(ha) };
+      },
+      async createHU(row){ chk(await sb.from('hu').insert(row)); },
+      async updateHU(id, patch){ chk(await sb.from('hu').update(patch).eq('id', id)); },
+      async deleteHU(id){ chk(await sb.from('hu').delete().eq('id', id)); },
+      async addHA(hu_id, codigo, titulo){ chk(await sb.from('ha').insert({ hu_id, codigo, titulo: titulo || null })); },
+      async delHA(id){ chk(await sb.from('ha').delete().eq('id', id)); },
+      async historial(hu_id){ return chk(await sb.from('hu_historial').select('*').eq('hu_id', hu_id).order('created_at', { ascending:false }).limit(50)); },
+    };
+  }
+
+  // ---------------- Estado de UI ----------------
+  let HU = [], HA = [], abierta = null, filtro = '';
+  const haDe = id => HA.filter(a => a.hu_id === id);
+
+  async function recargar(){
+    try { ({ hu: HU, ha: HA } = await api.load()); render(); if (abierta) renderDrawer(); }
+    catch (e) { console.error(e); toast('Error cargando datos: ' + errMsg(e)); }
+  }
+
+  const vistos = new Set(); let ordenEntrada = 0;
+  const setStat = (sel, v) => { const el = $(sel); if (el.textContent === String(v)) return; el.textContent = v; el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); };
+  function render(){
+    const creadas = HU.filter(h => h.estado === 'creada').length;
+    setStat('#sCreadas', `${creadas}/${HU.length}`);
+    setStat('#sHA', HA.length);
+    const ptop = $('#ptop');
+    if (ptop.children.length !== ESTADOS.length) ptop.innerHTML = ESTADOS.map(e => `<i style="width:0;background:${e.color}"></i>`).join('');
+    ESTADOS.forEach((e, i) => {
+      const n = HU.filter(h => h.estado === e.id).length;
+      const el = ptop.children[i]; el.style.width = HU.length ? (n / HU.length * 100) + '%' : '0'; el.title = `${e.nombre}: ${n}`;
+    });
+    ordenEntrada = 0;
+
+    const f = filtro.trim().toLowerCase();
+    $('#board').innerHTML = ESTADOS.map((e, ei) => {
+      const items = HU.filter(h => h.estado === e.id && (!f || h.codigo.toLowerCase().includes(f) || h.titulo.toLowerCase().includes(f)))
+                      .sort((a,b) => a.orden - b.orden);
+      const vacio = ei === 0 && !HU.length
+        ? `<div class="empty">Aún no tienes HU.<br>Crea la primera para empezar.</div>`
+        : `<div class="empty">Arrastra aquí una HU</div>`;
+      return `<section class="col">
+        <div class="col-h"><span class="dot" style="background:${e.color}"></span><h2>${e.nombre}</h2><span class="count">${items.length}</span></div>
+        <div class="list" data-estado="${e.id}">
+          ${items.length ? items.map(h => tarjeta(h, e, ei)).join('') : vacio}
+          ${ei === 0 ? '<button type="button" class="add-hu" data-nueva>+ Nueva HU</button>' : ''}
+        </div></section>`;
+    }).join('');
+    HU.forEach(h => vistos.add(h.id));
+  }
+  const conTransicion = fn => {
+    if (!document.startViewTransition || sinMovimiento() || document.documentElement.classList.contains('vt-tema')) return fn();
+    document.startViewTransition(fn);
+  };
+
+  function tarjeta(h, e, ei){
+    const n = haDe(h.id).length, meta = h.ha_esperadas;
+    const pct = meta ? Math.min(100, n/meta*100) : (n ? 100 : 0);
+    const lista = meta != null && meta > 0 && n >= meta && h.estado !== 'creada';
+    const nueva = !vistos.has(h.id);
+    return `<article class="card${nueva ? ' enter' : ''}" draggable="true" data-id="${esc(h.id)}" style="--c:${e.color};--i:${nueva ? ordenEntrada++ : 0};view-transition-name:hu-${esc(h.id)}">
+      <div class="card-top">
+        <span class="hu-id">HU ${esc(h.codigo)}</span>
+        ${lista ? '<span class="ready">HA completas</span>' : ''}
+        <span class="mv" style="margin-left:auto">
+          <button data-mv="-1" ${ei===0?'disabled':''} title="Mover a ${ei>0?ESTADOS[ei-1].nombre:''}" aria-label="Mover a la izquierda">◀</button>
+          <button data-mv="1" ${ei===2?'disabled':''} title="Mover a ${ei<2?ESTADOS[ei+1].nombre:''}" aria-label="Mover a la derecha">▶</button>
+        </span>
+      </div>
+      <p class="card-t">${esc(h.titulo)}</p>
+      <div class="card-b">
+        <div class="bar${meta && n >= meta ? ' full' : ''}"><i style="width:${pct}%"></i></div>
+        <span class="ha-n">${meta != null ? `${n}/${meta} HA` : `${n} HA · sin meta`}</span>
+      </div>
+    </article>`;
+  }
+
+  async function mover(id, estado){
+    const h = HU.find(x => x.id === id); if (!h || h.estado === estado) return;
+    const prev = h.estado; h.estado = estado; conTransicion(render);
+    try { await api.updateHU(id, { estado }); toast(`HU ${h.codigo} → ${nombreEstado(estado)}`); }
+    catch (e) { h.estado = prev; toast('No se pudo mover: ' + errMsg(e)); recargar(); }
+  }
+
+  // Drag & drop + clics del tablero
+  const board = $('#board');
+  board.addEventListener('dragstart', ev => {
+    const c = ev.target.closest('.card'); if (!c) return;
+    ev.dataTransfer.setData('text/plain', c.dataset.id); ev.dataTransfer.effectAllowed = 'move';
+    requestAnimationFrame(() => c.classList.add('dragging'));
+  });
+  board.addEventListener('dragend', ev => { ev.target.closest?.('.card')?.classList.remove('dragging'); document.querySelectorAll('.over').forEach(x=>x.classList.remove('over')); });
+  board.addEventListener('dragover', ev => { const l = ev.target.closest('.list'); if (!l) return; ev.preventDefault(); document.querySelectorAll('.over').forEach(x=>x!==l&&x.classList.remove('over')); l.classList.add('over'); });
+  board.addEventListener('dragleave', ev => { const l = ev.target.closest('.list'); if (l && !l.contains(ev.relatedTarget)) l.classList.remove('over'); });
+  board.addEventListener('drop', ev => { const l = ev.target.closest('.list'); if (!l) return; ev.preventDefault(); l.classList.remove('over'); mover(ev.dataTransfer.getData('text/plain'), l.dataset.estado); });
+  board.addEventListener('click', ev => {
+    if (ev.target.closest('[data-nueva]')) return abrirNueva();
+    const c = ev.target.closest('.card'); if (!c) return;
+    const b = ev.target.closest('[data-mv]');
+    if (b) { const h = HU.find(x => x.id === c.dataset.id); const i = ESTADOS.findIndex(e => e.id === h.estado) + +b.dataset.mv; if (ESTADOS[i]) mover(h.id, ESTADOS[i].id); return; }
+    abrir(c.dataset.id);
+  });
+  $('#q').addEventListener('input', e => { filtro = e.target.value; render(); });
+
+  // ---------------- Nueva HU ----------------
+  const dlg = $('#dlgHU');
+  function abrirNueva(){ $('#formHU').reset(); $('#nMsg').textContent = ''; dlg.classList.remove('cerrando'); dlg.showModal(); setTimeout(() => $('#nCod').focus(), 0); }
+  function cerrarDlg(){
+    if (!dlg.open) return;
+    if (sinMovimiento()) return dlg.close();
+    dlg.classList.add('cerrando');
+    setTimeout(() => { dlg.close(); dlg.classList.remove('cerrando'); }, 190);
+  }
+  dlg.addEventListener('cancel', e => { e.preventDefault(); cerrarDlg(); });
+  $('#nuevaHU').onclick = abrirNueva;
+  $('#nCancel').onclick = cerrarDlg;
+  $('#formHU').onsubmit = async e => {
+    e.preventDefault();
+    const codigo = $('#nCod').value.trim(), titulo = $('#nTit').value.trim(), m = $('#nMeta').value;
+    if (!codigo || !titulo) { $('#nMsg').textContent = 'El ID y el título de la HU son obligatorios.'; return; }
+    if (HU.some(h => h.codigo === codigo)) { $('#nMsg').textContent = `Ya tienes una HU con el ID ${codigo}.`; return; }
+    const orden = HU.reduce((mx, h) => Math.max(mx, h.orden), -1) + 1;
+    try {
+      await api.createHU({ codigo, titulo, ha_esperadas: m === '' ? null : Math.max(0, parseInt(m, 10)), orden });
+      cerrarDlg(); toast(`HU ${codigo} creada`); await recargar();
+    } catch (err) { $('#nMsg').textContent = errMsg(err); }
+  };
+
+  // ---------------- Panel lateral ----------------
+  const drawer = $('#drawer'), scrim = $('#scrim');
+  function abrir(id){ abierta = id; drawer.classList.add('entrando'); clearTimeout(abrir._t); abrir._t = setTimeout(() => drawer.classList.remove('entrando'), 900); renderDrawer(); drawer.classList.add('on'); scrim.classList.add('on'); drawer.setAttribute('aria-hidden','false'); }
+  function cerrar(){ abierta = null; drawer.classList.remove('on'); scrim.classList.remove('on'); drawer.setAttribute('aria-hidden','true'); }
+  scrim.addEventListener('click', cerrar);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && abierta && !dlg.open) cerrar(); });
+
+  const EV = { estado:'Cambio de estado', ha_agregada:'HA agregada', ha_eliminada:'HA eliminada', ha_esperadas:'Meta de HA' };
+  const fmt = d => new Date(d).toLocaleString('es-CO', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' });
+
+  const haVistas = new Set();
+  async function renderDrawer(){
+    const h = HU.find(x => x.id === abierta); if (!h) return cerrar();
+    const has = haDe(h.id);
+    setTimeout(() => has.forEach(a => haVistas.add(a.id)), 0);
+    const foco = document.activeElement;
+    if (foco && drawer.contains(foco) && foco.matches('textarea, .cod, .tit, #haCod, #haTit')) return; // no pisar mientras escribe
+    drawer.innerHTML = `
+      <div class="d-h">
+        <div class="row"><span class="hint">HU</span><input class="cod" id="dCod" value="${esc(h.codigo)}" aria-label="ID de la HU"><button class="x" id="cerrar" aria-label="Cerrar">×</button></div>
+        <input class="tit" id="dTit" value="${esc(h.titulo)}" aria-label="Título de la HU">
+      </div>
+      <div class="d-b">
+        <div class="sec"><h4>Estado</h4>
+          <div class="seg">${ESTADOS.map(e => `<button data-est="${e.id}" class="${e.id===h.estado?'on':''}" style="--c:${e.color};--fg:${e.fg}">${e.nombre}</button>`).join('')}</div>
+        </div>
+        <div class="sec"><h4>HA esperadas según complejidad</h4>
+          <div class="meta"><input id="meta" class="num" type="number" min="0" value="${h.ha_esperadas ?? ''}" placeholder="—">
+            <span class="hint">${has.length} registrada${has.length===1?'':'s'}${h.ha_esperadas!=null ? (has.length>=h.ha_esperadas?' · completas ✓':` · faltan ${h.ha_esperadas-has.length}`) : ''}</span></div>
+        </div>
+        <div class="sec"><h4>HA creadas <span class="mono" style="color:var(--ink-2)">${has.length}</span></h4>
+          ${has.length ? `<ol class="ha-list">${has.map((a,i) => `<li class="ha${haVistas.has(a.id) ? '' : ' enter'}" style="--i:${i}"><span class="i">${i+1}</span><span class="c">${esc(a.codigo)}</span><span class="t${a.titulo?'':' vacio'}">${a.titulo ? esc(a.titulo) : 'Sin título'}</span><button class="del" data-del="${a.id}" title="Eliminar HA" aria-label="Eliminar HA ${esc(a.codigo)}">×</button></li>`).join('')}</ol>` : `<div class="empty">Aún no has registrado HA para esta HU</div>`}
+          <form class="add" id="addForm">
+            <input id="haCod" class="mono" placeholder="ID de la HA *" inputmode="numeric" required aria-label="ID de la HA (obligatorio)">
+            <input id="haTit" placeholder="Título (opcional)" aria-label="Título de la HA (opcional)">
+            <button type="submit" class="btn btn-y">Agregar</button>
+          </form>
+        </div>
+        <div class="sec"><h4>Notas</h4><textarea id="notas" placeholder="Dependencias, observaciones…">${esc(h.notas)}</textarea></div>
+        <div class="sec"><h4>Historial</h4><ul class="hist" id="hist"><li>Cargando…</li></ul></div>
+        <div class="sec"><button type="button" class="btn btn-danger" id="delHU">Eliminar HU</button></div>
+      </div>`;
+    const q = s => drawer.querySelector(s);
+    q('#cerrar').onclick = cerrar;
+    q('#dCod').onchange = async e => {
+      const v = e.target.value.trim();
+      if (!v) { e.target.value = h.codigo; return toast('El ID de la HU es obligatorio'); }
+      if (v === h.codigo) return;
+      try { await api.updateHU(h.id, { codigo: v }); h.codigo = v; render(); toast('ID actualizado'); }
+      catch (err) { e.target.value = h.codigo; toast(errMsg(err)); }
+    };
+    q('#dTit').onchange = async e => {
+      const v = e.target.value.trim();
+      if (!v) { e.target.value = h.titulo; return toast('El título de la HU es obligatorio'); }
+      if (v === h.titulo) return;
+      try { await api.updateHU(h.id, { titulo: v }); h.titulo = v; render(); toast('Título actualizado'); }
+      catch (err) { e.target.value = h.titulo; toast(errMsg(err)); }
+    };
+    drawer.querySelectorAll('[data-est]').forEach(b => b.onclick = async () => { await mover(h.id, b.dataset.est); renderDrawer(); });
+    q('#meta').onchange = async e => {
+      const v = e.target.value === '' ? null : Math.max(0, parseInt(e.target.value, 10));
+      try { await api.updateHU(h.id, { ha_esperadas: v }); h.ha_esperadas = v; render(); renderDrawer(); } catch (err) { toast(errMsg(err)); }
+    };
+    q('#notas').onblur = async e => {
+      if (e.target.value === (h.notas || '')) return;
+      try { await api.updateHU(h.id, { notas: e.target.value }); h.notas = e.target.value; toast('Notas guardadas'); } catch (err) { toast(errMsg(err)); }
+    };
+    q('#addForm').onsubmit = async e => {
+      e.preventDefault();
+      const cod = q('#haCod').value.trim(), tit = q('#haTit').value.trim();
+      if (!cod) { toast('El ID de la HA es obligatorio'); q('#haCod').focus(); return; }
+      if (haDe(h.id).some(a => a.codigo === cod)) { toast(`La HA ${cod} ya está registrada en esta HU`); return; }
+      try { await api.addHA(h.id, cod, tit); q('#haCod').blur(); q('#haTit').blur(); await recargar(); setTimeout(() => drawer.querySelector('#haCod')?.focus(), 0); }
+      catch (err) { toast(errMsg(err)); }
+    };
+    drawer.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => {
+      if (!confirm('¿Eliminar esta HA?')) return;
+      try { await api.delHA(b.dataset.del); await recargar(); } catch (err) { toast(errMsg(err)); }
+    });
+    q('#delHU').onclick = async () => {
+      if (!confirm(`¿Eliminar la HU ${h.codigo} con sus ${has.length} HA e historial? Esto no se puede deshacer.`)) return;
+      try { await api.deleteHU(h.id); cerrar(); toast(`HU ${h.codigo} eliminada`); await recargar(); } catch (err) { toast(errMsg(err)); }
+    };
+    try {
+      const hist = await api.historial(h.id);
+      const ul = q('#hist'); if (!ul) return;
+      ul.innerHTML = hist.length ? hist.map(x => `<li><time>${fmt(x.created_at)}${x.usuario?' · '+esc(x.usuario):''}</time><b>${EV[x.evento]||esc(x.evento)}:</b> ${esc(x.evento==='estado' ? x.detalle.split(' → ').map(nombreEstado).join(' → ') : x.detalle)}</li>`).join('') : '<li>Sin movimientos todavía</li>';
+    } catch (err) { console.error(err); }
+  }
+
+  // ---------------- Arranque ----------------
+  async function iniciarApp(){
+    $('#login').hidden = true; $('#app').hidden = false;
+    if (DEMO) { $('#demoTag').hidden = false; $('#who').textContent = 'Datos en este navegador'; }
+    else {
+      $('#who').textContent = usuario?.email || ''; $('#logout').hidden = false;
+      try { await sb.rpc('reclamar_hu_iniciales'); } catch {}
+      let t; const deb = () => { clearTimeout(t); t = setTimeout(recargar, 250); };
+      sb.channel('tablero-' + usuario.id)
+        .on('postgres_changes', { event:'*', schema:'public', table:'hu' }, deb)
+        .on('postgres_changes', { event:'*', schema:'public', table:'ha' }, deb).subscribe();
+    }
+    await recargar();
+  }
+
+  if (DEMO) { iniciarApp(); return; }
+
+  // Login / registro
+  let modo = 'ingresar';
+  const msg = (t, tipo) => { const m = $('#loginMsg'); m.textContent = t; m.className = 'msg ' + (tipo || ''); };
+  document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
+    modo = b.dataset.modo;
+    document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('on', x === b));
+    $('.tabs').dataset.active = modo;
+    ['#loginTitle', '#loginIntro'].forEach(sel => { const el = $(sel); el.classList.add('swap'); setTimeout(() => el.classList.remove('swap'), 160); });
+    $('#loginBtn').textContent = modo === 'ingresar' ? 'Ingresar' : 'Crear cuenta';
+    setTimeout(() => {
+      $('#loginTitle').textContent = modo === 'ingresar' ? 'Bienvenido de nuevo' : 'Crea tu cuenta';
+      $('#loginIntro').textContent = modo === 'ingresar' ? 'Ingresa para ver y gestionar tus HU y HA.' : 'Regístrate con tu correo para empezar a gestionar tus HU.';
+    }, 150);
+    $('#pass').autocomplete = modo === 'ingresar' ? 'current-password' : 'new-password';
+    msg('');
+  });
+  const traducir = m => {
+    if (/invalid login credentials/i.test(m)) return 'Correo o contraseña incorrectos.';
+    if (/email not confirmed/i.test(m)) return 'Primero confirma tu correo con el enlace que te enviamos.';
+    if (/already registered|already exists/i.test(m)) return 'Ese correo ya tiene cuenta. Usa "Ingresar".';
+    if (/password should be at least/i.test(m)) return 'La contraseña debe tener al menos 6 caracteres.';
+    if (/rate limit/i.test(m)) return 'Demasiados intentos. Espera unos minutos e intenta de nuevo.';
+    return m;
+  };
+  $('#loginForm').onsubmit = async e => {
+    e.preventDefault();
+    const email = $('#email').value.trim(), password = $('#pass').value;
+    if (!email || !password) return msg('Escribe tu correo y contraseña.', 'err');
+    if (password.length < 6) return msg('La contraseña debe tener al menos 6 caracteres.', 'err');
+    const btn = $('#loginBtn'); btn.disabled = true;
+    try {
+      if (modo === 'ingresar') {
+        const { error } = await sb.auth.signInWithPassword({ email, password });
+        if (error) msg(traducir(error.message), 'err');
+      } else {
+        const { data, error } = await sb.auth.signUp({ email, password, options: { emailRedirectTo: location.origin + location.pathname } });
+        if (error) msg(traducir(error.message), 'err');
+        else if (!data.session) msg('Cuenta creada. Te enviamos un correo para confirmarla; ábrelo y luego ingresa con tu contraseña.', 'ok');
+      }
+    } finally { btn.disabled = false; }
+  };
+  $('#logout').onclick = async () => { await sb.auth.signOut(); location.reload(); };
+
+  let arrancada = false;
+  sb.auth.onAuthStateChange((_ev, session) => {
+    usuario = session?.user || null;
+    if (usuario && !arrancada) { arrancada = true; setTimeout(iniciarApp, 0); }
+    if (!usuario) { $('#app').hidden = true; $('#login').hidden = false; }
+  });
+})();
+</script>
+</body>
+</html>
