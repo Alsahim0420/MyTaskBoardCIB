@@ -343,6 +343,11 @@
   .opt small{display:block;font-weight:400;color:var(--ink-3);font-size:12.5px;margin-top:2px}
   .opt:has(input:checked){border-color:var(--yellow);background:color-mix(in srgb,var(--yellow) 12%,transparent)}
   .opt input{margin-top:3px;accent-color:#2C2A29}
+  .sel{border:1px solid var(--line-2);background:var(--card);color:var(--ink);border-radius:8px;padding:9px 11px;font-weight:600}
+  .sel:focus{outline:2px solid var(--yellow);outline-offset:0}
+  .tipo{font-size:10.5px;font-weight:800;padding:2px 7px;border-radius:999px;background:color-mix(in srgb,#9747FF 16%,transparent);color:#7A2FD6}
+  :root[data-theme="dark"] .tipo{color:#C9A2FF}
+  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .tipo{color:#C9A2FF} }
   .az-id{display:flex;flex-direction:column;gap:8px;padding:2px 2px 0}
   .chk{flex-direction:row!important;align-items:center;gap:8px!important;font-weight:600!important;font-size:13px!important}
   .chk input{accent-color:#2C2A29;width:16px;height:16px}
@@ -427,13 +432,16 @@
   <form id="formAz" method="dialog">
     <h3>Sincronizar con Azure DevOps</h3>
     <p class="hint" style="margin:-4px 0 2px;font-size:13px">Trae las HU del sprint actual y sus HA. No cambia el estado, la meta ni las notas que ya tengas, y no modifica nada en Azure DevOps.</p>
+    <label id="azSprintBox">Sprint
+      <select id="azSprint" class="sel"><option value="">Sprint actual</option></select>
+    </label>
     <div class="opts">
       <label class="opt"><input type="radio" name="modo" value="mias" checked><span>Solo mis HU<small>Las asignadas a mí o que tienen HA asignadas a mí</small></span></label>
       <label class="opt"><input type="radio" name="modo" value="todas"><span>Todo el sprint del equipo<small>Todas las HU del sprint actual</small></span></label>
-      <label class="opt"><input type="radio" name="modo" value="id"><span>Importar por ID<small>Una HU (y sus hermanas de la misma Feature) o todas las HU de una Feature/Epic, en cualquier estado</small></span></label>
+      <label class="opt"><input type="radio" name="modo" value="id"><span>Importar por ID<small>Una o varias HU, o todas las HU de una Feature/Epic, en cualquier estado (incluso cerradas)</small></span></label>
       <div id="azIdBox" class="az-id" hidden>
-        <input id="azId" class="mono" inputmode="numeric" placeholder="ID del work item, ej. 7906266" aria-label="ID del work item">
-        <label class="chk"><input type="checkbox" id="azHerm" checked> Incluir las demás HU de la misma Feature</label>
+        <textarea id="azId" class="mono" rows="3" placeholder="Uno o varios IDs, separados por coma, espacio o línea. Ej.: 7906266, 7906295" aria-label="IDs de los work items" style="min-height:72px"></textarea>
+        <label class="chk"><input type="checkbox" id="azHerm"> Incluir también las demás HU de su misma Feature</label>
       </div>
     </div>
     <div id="azRes" class="res" hidden></div>
@@ -583,7 +591,7 @@
   const haDe = id => HA.filter(a => a.hu_id === id);
 
   const firma = (hu, ha) => JSON.stringify([
-    hu.map(h => [h.id, h.codigo, h.titulo, h.estado, h.ha_esperadas, h.orden, h.notas, h.azure_estado, h.sprint]),
+    hu.map(h => [h.id, h.codigo, h.titulo, h.estado, h.ha_esperadas, h.orden, h.notas, h.azure_estado, h.sprint, h.tipo]),
     ha.map(a => [a.id, a.hu_id, a.codigo, a.titulo, a.azure_estado, a.asignado])
   ]);
   let cargado = false;
@@ -640,7 +648,8 @@
     const nueva = !vistos.has(h.id);
     return `<article class="card${nueva ? ' enter' : ''}" draggable="true" data-id="${esc(h.id)}" style="--c:${e.color};--i:${nueva ? ordenEntrada++ : 0};view-transition-name:hu-${esc(h.id)}">
       <div class="card-top">
-        <span class="hu-id">HU ${esc(h.codigo)}</span>
+        <span class="hu-id">${h.tipo && !/user story|historia de usuario|product backlog/i.test(h.tipo) ? '' : 'HU '}${esc(h.codigo)}</span>
+        ${h.tipo && !/user story|historia de usuario|product backlog/i.test(h.tipo) ? `<span class="tipo">${esc(h.tipo)}</span>` : ''}
         ${h.azure_estado ? `<span class="az" title="Estado en Azure DevOps${h.sprint ? ' · ' + esc(h.sprint) : ''}">${esc(h.azure_estado)}</span>` : ''}
         ${lista ? '<span class="ready">HA completas</span>' : ''}
         <span class="mv" style="margin-left:auto">
@@ -728,7 +737,7 @@
       <div class="d-h">
         <div class="row"><span class="hint">HU</span><input class="cod" id="dCod" value="${esc(h.codigo)}" aria-label="ID de la HU"><button class="x" id="cerrar" aria-label="Cerrar">×</button></div>
         <input class="tit" id="dTit" value="${esc(h.titulo)}" aria-label="Título de la HU">
-        ${h.azure_url ? `<div class="row" style="gap:10px;flex-wrap:wrap"><a class="az-link" href="${esc(h.azure_url)}" target="_blank" rel="noopener">Abrir en Azure DevOps ↗</a>${h.azure_estado ? `<span class="az">${esc(h.azure_estado)}</span>` : ''}${h.sprint ? `<span class="hint">${esc(h.sprint)}</span>` : ''}</div>` : ''}
+        ${h.azure_url ? `<div class="row" style="gap:10px;flex-wrap:wrap"><a class="az-link" href="${esc(h.azure_url)}" target="_blank" rel="noopener">Abrir en Azure DevOps ↗</a>${h.tipo ? `<span class="tipo">${esc(h.tipo)}</span>` : ''}${h.azure_estado ? `<span class="az">${esc(h.azure_estado)}</span>` : ''}${h.sprint ? `<span class="hint">${esc(h.sprint)}</span>` : ''}</div>` : ''}
       </div>
       <div class="d-b">
         <div class="sec"><h4>Estado</h4>
@@ -800,32 +809,46 @@
 
   // ---------------- Azure DevOps ----------------
   const dlgAz = $('#dlgAz');
-  $('#syncAz').onclick = () => { $('#azRes').hidden = true; dlgAz.showModal(); };
-  $('#formAz').addEventListener('change', () => {
+  let sprintsCargados = false;
+  async function cargarSprints(){
+    if (sprintsCargados) return;
+    try {
+      const { data } = await sb.functions.invoke('sync-azure', { body: { accion: 'sprints' } });
+      if (!data?.sprints?.length) return;
+      const tf = { current: ' (actual)', future: ' (próximo)', past: '' };
+      $('#azSprint').innerHTML = data.sprints.map(x => `<option value="${esc(x.path)}" ${x.timeFrame === 'current' ? 'selected' : ''}>${esc(x.name)}${tf[x.timeFrame] ?? ''}</option>`).join('');
+      sprintsCargados = true;
+    } catch {}
+  }
+  $('#syncAz').onclick = () => { $('#azRes').hidden = true; dlgAz.showModal(); cargarSprints(); };
+  $('#formAz').addEventListener('change', e => {
+    if (e.target.id === 'azSprint') return;
     const esId = new FormData($('#formAz')).get('modo') === 'id';
-    $('#azIdBox').hidden = !esId; if (esId) setTimeout(() => $('#azId').focus(), 0);
+    $('#azIdBox').hidden = !esId; $('#azSprintBox').hidden = esId;
+    if (esId) setTimeout(() => $('#azId').focus(), 0);
   });
   $('#azCancel').onclick = () => dlgAz.close();
   $('#formAz').onsubmit = async e => {
     e.preventDefault();
     const modo = new FormData($('#formAz')).get('modo');
-    const id = $('#azId').value.trim();
-    if (modo === 'id' && !/^\d+$/.test(id)) { const r = $('#azRes'); r.className = 'res err'; r.textContent = 'Escribe el ID numérico del work item.'; r.hidden = false; return; }
+    const ids = ($('#azId').value.match(/\d{3,}/g) || []);
+    if (modo === 'id' && !ids.length) { const r = $('#azRes'); r.className = 'res err'; r.textContent = 'Escribe al menos un ID numérico.'; r.hidden = false; return; }
     const go = $('#azGo'), btn = $('#syncAz'), res = $('#azRes');
     go.disabled = true; go.textContent = 'Sincronizando…'; btn.classList.add('girando');
     res.hidden = true; res.className = 'res';
     try {
-      const { data, error } = await sb.functions.invoke('sync-azure', { body: { modo, id, hermanas: $('#azHerm').checked } });
+      const { data, error } = await sb.functions.invoke('sync-azure', { body: { modo, ids, hermanas: $('#azHerm').checked, sprint: $('#azSprint').value } });
       let d = data;
       if (error) { try { d = await error.context.json(); } catch { d = { error: error.message }; } }
       if (d?.error) throw new Error(d.error);
       if (d.aviso) {
         res.innerHTML = `<b>${esc(d.sprint || d.base || '')}</b>: ${esc(d.aviso)}<br>Work items encontrados: ${d.items ?? 0}` +
           (d.tipos?.length ? ` (${d.tipos.map(esc).join(', ')})` : '') +
-          (d.sin_padre ? `<br>${d.sin_padre} sin HU padre.` : '') +
+          (d.sueltos ? `<br>${d.sueltos} sin HU padre.` : '') +
           (d.ruta ? `<br><span class="hint">Ruta: ${esc(d.ruta)}</span>` : '');
       } else {
-        res.innerHTML = `<b>${esc(d.sprint || d.base || '')}</b> · ${d.hu_total} HU<br>${d.hu_nuevas} HU nuevas, ${d.hu_actualizadas} actualizadas · ${d.ha_nuevas} HA nuevas, ${d.ha_actualizadas} actualizadas`;
+        res.innerHTML = `<b>${esc(d.sprint || d.base || '')}</b> · ${d.hu_total} tarjeta${d.hu_total === 1 ? '' : 's'}${d.sueltos ? ` (${d.sueltos} sin HU padre)` : ''}<br>${d.hu_nuevas} HU nuevas, ${d.hu_actualizadas} actualizadas · ${d.ha_nuevas} HA nuevas, ${d.ha_actualizadas} actualizadas` +
+          (d.no_encontrados?.length ? `<br><span class="hint">No encontrados: ${d.no_encontrados.map(esc).join(', ')}</span>` : '');
         toast(`Sincronizado: ${d.hu_nuevas} HU y ${d.ha_nuevas} HA nuevas`);
         await recargar();
       }

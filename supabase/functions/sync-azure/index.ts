@@ -1,4 +1,4 @@
-// Sincroniza HU (del sprint actual o bajo un work item dado) y sus HA hijas desde Azure DevOps al tablero.
+// Sincroniza HU (de un sprint, de una lista de IDs o bajo una Feature/Epic) y sus HA desde Azure DevOps al tablero.
 // - El PAT vive en el secreto AZDO_PAT (Supabase > Edge Functions > Secrets). Nunca en el repo.
 // - La organización, proyecto y equipo se leen de public.azure_config del usuario que llama.
 // - Solo lectura en Azure DevOps. En el tablero crea/actualiza HU y HA sin tocar estado, meta ni notas.
@@ -38,9 +38,11 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const modo: "mias" | "todas" | "id" = body?.modo === "todas" ? "todas" : body?.modo === "id" ? "id" : "mias";
-    const idBase = Number(String(body?.id ?? "").replace(/\D/g, ""));
-    const hermanas = body?.hermanas !== false;
-    if (modo === "id" && !idBase) return json({ error: "Escribe el ID de una HU, Feature o Epic." }, 400);
+    const idsEntrada = [...new Set(String(Array.isArray(body?.ids) ? body.ids.join(",") : (body?.ids ?? body?.id ?? ""))
+      .split(/[^0-9]+/).filter(Boolean).map(Number))].slice(0, 300);
+    const hermanas = body?.hermanas === true;
+    const sprintPedido: string | null = typeof body?.sprint === "string" && body.sprint ? body.sprint : null;
+    if (modo === "id" && !idsEntrada.length) return json({ error: "Escribe uno o varios IDs de HU, Feature o Epic." }, 400);
 
     const org = String(cfg.org_url).replace(/\/+$/, "");
     const proj = encodeURIComponent(cfg.project);
@@ -71,6 +73,15 @@ Deno.serve(async (req) => {
       az(`${org}/${proj}/${team}/_apis/wit/wiql?api-version=7.1`, { method: "POST", body: JSON.stringify({ query }) });
     const q = (s: string) => s.replace(/'/g, "''");
 
+    // Lista de sprints del equipo (para el selector)
+    if (body?.accion === "sprints") {
+      const r = await az(`${org}/${proj}/${team}/_apis/work/teamsettings/iterations?api-version=7.1`);
+      const its = (r.value ?? []).map((i: any) => ({ name: i.name, path: i.path, timeFrame: i.attributes?.timeFrame, start: i.attributes?.startDate }));
+      const idx = its.findIndex((i: any) => i.timeFrame === "current");
+      const desde = Math.max(0, (idx >= 0 ? idx : its.length) - 6);
+      return json({ sprints: its.slice(desde, (idx >= 0 ? idx : its.length) + 2).reverse() });
+    }
+
     const sprintDe = (w?: WI) => String(w?.fields["System.IterationPath"] ?? "").split("\\").pop() || null;
 
     // Detalle de work items (lotes de 200)
@@ -88,8 +99,28 @@ Deno.serve(async (req) => {
       }
       return out;
     }
+    // Detalle con relaciones (la API no admite lista de campos junto con $expand)
+    async function loteRel(ids: number[]): Promise<any[]> {
+      const out: any[] = [];
+      for (let i = 0; i < ids.length; i += 200) {
+        const r = await az(`${org}/_apis/wit/workitemsbatch?api-version=7.1`, {
+          method: "POST",
+          body: JSON.stringify({ ids: ids.slice(i, i + 200), $expand: "Relations" }),
+        });
+        out.push(...(r.value ?? []));
+      }
+      return out;
+    }
+    const RELS = new Set([
+      "System.LinkTypes.Hierarchy-Forward", "System.LinkTypes.Related",
+      "System.LinkTypes.Dependency-Forward", "System.LinkTypes.Dependency-Reverse",
+    ]);
+    const relacionados = (w: any) =>
+      (w?.relations ?? []).filter((r: any) => RELS.has(r.rel) && /\/workItems\/\d+$/i.test(r.url))
+        .map((r: any) => ({ rel: r.rel as string, id: Number(String(r.url).split("/").pop()) }));
     const tiposHU = new Set((cfg.tipos_hu as string[]).map((t) => t.toLowerCase()));
     const esHU = (w?: WI) => !!w && tiposHU.has(String(w.fields["System.WorkItemType"]).toLowerCase());
+    const esContenedor = (w?: WI) => !!w && /feature|epic|[ée]pica|iniciativa|caracter/i.test(String(w.fields["System.WorkItemType"]));
     const diag: Record<string, unknown> = {};
     const descendientes = async (id: number, recursivo: boolean) => {
       const r = await wiql(
@@ -103,62 +134,81 @@ Deno.serve(async (req) => {
     // 2) Determinar las HU a traer
     const set = new Set<number>();
     if (modo === "id") {
-      const [w] = await lote([idBase]);
-      if (!w) return json({ error: `No encontré el work item ${idBase} o tu token no tiene acceso a él.` }, 404);
-      diag.base = `${w.fields["System.WorkItemType"]} ${idBase}: ${w.fields["System.Title"]}`;
-      const tipo = String(w.fields["System.WorkItemType"]);
-      const contenedor = /feature|epic|[ée]pica|iniciativa|caracter/i.test(tipo);
-      if (!contenedor) {
-        // Es una HU (o similar): ella y, opcionalmente, sus hermanas del mismo tipo
-        set.add(idBase);
+      const items = await lote(idsEntrada);
+      const vistos = new Set(items.map((w) => w.id));
+      diag.no_encontrados = idsEntrada.filter((id) => !vistos.has(id));
+      diag.base = items.length === 1 ? `${items[0].fields["System.WorkItemType"]} ${items[0].id}: ${items[0].fields["System.Title"]}` : `${items.length} IDs`;
+      if (!items.length) return json({ error: "No encontré esos work items o tu token no tiene acceso a ellos." }, 404);
+      for (const w of items) {
+        if (esContenedor(w)) {
+          const desc = await lote(await descendientes(w.id, true));
+          for (const x of desc) if (esHU(x)) set.add(x.id);
+          continue;
+        }
+        set.add(w.id);
         const padre = Number(w.fields["System.Parent"] || 0);
         if (hermanas && padre) {
           const sib = await lote(await descendientes(padre, false));
-          for (const x of sib) if (x.fields["System.WorkItemType"] === tipo) set.add(x.id);
-          diag.items = sib.length;
+          for (const x of sib) if (x.fields["System.WorkItemType"] === w.fields["System.WorkItemType"]) set.add(x.id);
         }
-      } else {
-        const desc = await lote(await descendientes(idBase, true));
-        diag.items = desc.length;
-        diag.tipos = [...new Set(desc.map((x) => x.fields["System.WorkItemType"]))];
-        for (const x of desc) if (esHU(x)) set.add(x.id);
       }
     } else {
-      const iters = await az(`${org}/${proj}/${team}/_apis/work/teamsettings/iterations?$timeframe=current&api-version=7.1`);
-      const it = iters?.value?.[0];
-      if (!it) return json({ error: "El equipo no tiene un sprint actual configurado." }, 404);
+      let it: any;
+      if (sprintPedido) it = { name: sprintPedido.split("\\").pop(), path: sprintPedido };
+      else {
+        const iters = await az(`${org}/${proj}/${team}/_apis/work/teamsettings/iterations?$timeframe=current&api-version=7.1`);
+        it = iters?.value?.[0];
+        if (!it) return json({ error: "El equipo no tiene un sprint actual configurado." }, 404);
+      }
       diag.sprint = it.name; diag.ruta = it.path;
       const filtro = modo === "mias" ? " AND [System.AssignedTo] = @Me" : "";
       const r0 = await wiql(`SELECT [System.Id] FROM WorkItems WHERE [System.IterationPath] UNDER '${q(it.path)}'${filtro}`);
       const base = await lote((r0.workItems ?? []).map((w: any) => w.id));
       diag.items = base.length;
       diag.tipos = [...new Set(base.map((w) => w.fields["System.WorkItemType"]))];
+      // Padres de los items que no son HU
+      const padresIds = [...new Set(base.filter((w) => !esHU(w) && w.fields["System.Parent"]).map((w) => Number(w.fields["System.Parent"])))];
+      const padres = new Map((padresIds.length ? await lote(padresIds) : []).map((p) => [p.id, p]));
+      let sueltos = 0;
+      const huerfanos: WI[] = [];
       for (const w of base) {
-        if (esHU(w)) set.add(w.id);
-        else if (w.fields["System.Parent"]) set.add(Number(w.fields["System.Parent"]));
+        if (esHU(w) || esContenedor(w)) { if (esHU(w)) set.add(w.id); continue; }
+        const p = padres.get(Number(w.fields["System.Parent"] || 0));
+        if (p && !esContenedor(p)) set.add(p.id);       // su HU padre
+        else huerfanos.push(w);
       }
-      diag.sin_padre = base.filter((w) => !esHU(w) && !w.fields["System.Parent"]).length;
+      // Sin padre (p. ej. Habilitador): buscar su HU entre los relacionados; si no hay, tarjeta propia
+      if (huerfanos.length) {
+        const conRel = await loteRel(huerfanos.map((w) => w.id));
+        const cand = [...new Set(conRel.flatMap((w) => relacionados(w).map((r: any) => r.id)))];
+        const candDet = new Map((cand.length ? await lote(cand) : []).map((c) => [c.id, c]));
+        for (const w of conRel) {
+          const hus = relacionados(w).map((r: any) => candDet.get(r.id))
+            .filter((c: any) => c && !esContenedor(c) && (esHU(c) || c.fields["System.WorkItemType"] !== w.fields["System.WorkItemType"]));
+          if (hus.length) hus.forEach((h: any) => set.add(h.id));
+          else { set.add(w.id); sueltos++; }
+        }
+      }
+      diag.sueltos = sueltos;
     }
     const huIds = [...set];
     if (!huIds.length) return json({ ...diag, modo, hu_total: 0, aviso: modo === "id" ? "No encontré HU bajo ese work item." : "No encontré HU para traer en el sprint actual." });
 
-    // 3) Hijas (HA) de esas HU, estén o no en el sprint
-    const hijos = new Map<number, number[]>(huIds.map((id) => [id, []]));
-    for (let i = 0; i < huIds.length; i += 100) {
-      const ids = huIds.slice(i, i + 100).join(",");
-      const links = await wiql(
-        `SELECT [System.Id] FROM WorkItemLinks
-         WHERE ([Source].[System.Id] IN (${ids}))
-           AND ([System.Links.LinkType] = 'System.LinkTypes.Hierarchy-Forward')
-         MODE (MayContain)`,
-      );
-      for (const rel of links.workItemRelations ?? []) {
-        if (rel.source && hijos.has(rel.source.id)) hijos.get(rel.source.id)!.push(rel.target.id);
-      }
+    // 3) HA de esas HU: hijas, relacionadas y dependencias (p. ej. Habilitadores), en cualquier estado
+    const huDet = await loteRel(huIds);
+    const relPorHU = new Map(huDet.map((w: any) => [w.id as number, relacionados(w)]));
+    const candidatos = [...new Set([...relPorHU.values()].flat().map((r: any) => r.id as number))].filter((id) => !set.has(id));
+    const candDet = new Map((candidatos.length ? await lote(candidatos) : []).map((w) => [w.id, w]));
+    const hijos = new Map<number, number[]>();
+    for (const [id, rels] of relPorHU) {
+      const ok = rels.filter((r: any) => {
+        const c = candDet.get(r.id);
+        if (!c || esContenedor(c)) return false;
+        return r.rel === "System.LinkTypes.Hierarchy-Forward" || !esHU(c);
+      }).map((r: any) => r.id as number);
+      hijos.set(id, [...new Set(ok)]);
     }
-
-    const todosIds = [...new Set(huIds.flatMap((id) => [id, ...(hijos.get(id) ?? [])]))];
-    const det = new Map((await lote(todosIds)).map((w) => [w.id, w]));
+    const det = new Map<number, WI>([...huDet.map((w: any) => [w.id, w] as [number, WI]), ...candDet]);
     const asignado = (w?: WI) => w?.fields["System.AssignedTo"]?.displayName ?? null;
 
     // 5) Volcar al tablero (con la sesión del usuario: aplica RLS)
@@ -174,6 +224,7 @@ Deno.serve(async (req) => {
       const codigo = String(id);
       const campos = {
         titulo: w.fields["System.Title"],
+        tipo: w.fields["System.WorkItemType"],
         sprint: sprintDe(w),
         azure_estado: w.fields["System.State"],
         azure_url: `${org}/${proj}/_workitems/edit/${id}`,
