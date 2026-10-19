@@ -79,7 +79,8 @@
   .progress-top{max-width:1400px;margin:12px auto 0;height:6px;border-radius:4px;background:#4A4847;overflow:hidden;display:flex}
   .progress-top i{display:block;height:100%}
 
-  main{max-width:1400px;margin:0 auto;padding:18px 20px 60px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+  main{max-width:1400px;margin:0 auto;padding:18px 20px 60px;display:grid;grid-template-columns:repeat(var(--ncols,3),minmax(250px,1fr));gap:16px;overflow-x:auto}
+  @media (min-width:1500px){main{max-width:none}}
   @media (max-width:900px){main{grid-template-columns:1fr}}
   .col{background:var(--panel);border:1px solid var(--line);border-radius:12px;display:flex;flex-direction:column;min-height:200px}
   .col-h{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line)}
@@ -122,7 +123,8 @@
   .x{margin-left:auto;background:none;border:none;font-size:22px;color:var(--ink-3);line-height:1}
   .d-b{padding:16px 20px 40px;overflow:auto;flex:1;display:flex;flex-direction:column;gap:22px}
   .sec h4{margin:0 0 9px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);font-weight:700;display:flex;align-items:center;gap:8px}
-  .seg{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--line-2);border-radius:8px;overflow:hidden}
+  .seg{display:flex;flex-wrap:wrap;border:1px solid var(--line-2);border-radius:8px;overflow:hidden}
+  .seg button{flex:1 1 90px}
   .seg button{background:var(--card);border:none;border-right:1px solid var(--line-2);padding:9px 6px;font-size:13px}
   .seg button:last-child{border-right:none}
   .seg button.on{background:var(--c);color:var(--fg,#fff);font-weight:800}
@@ -366,7 +368,7 @@
       <h2 class="bp-title">Tus HU y sus HA,<br><span>bajo control.</span></h2>
       <p class="bp-sub">Lleva el seguimiento y la trazabilidad de cada historia de usuario: qué HA ya creaste, cuántas faltan y en qué estado va cada una.</p>
       <ul class="bp-feats">
-        <li><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#FDDA24"/><path d="M7 12.5l3.2 3.2L17 9" fill="none" stroke="#2C2A29" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Tablero por estados: por hacer, en desarrollo y creada</li>
+        <li><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#FDDA24"/><path d="M7 12.5l3.2 3.2L17 9" fill="none" stroke="#2C2A29" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Tablero con los mismos estados de tu proceso en Azure DevOps</li>
         <li><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#FDDA24"/><path d="M7 12.5l3.2 3.2L17 9" fill="none" stroke="#2C2A29" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>HA esperadas según la complejidad de cada HU</li>
         <li><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#FDDA24"/><path d="M7 12.5l3.2 3.2L17 9" fill="none" stroke="#2C2A29" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Historial automático de cada cambio</li>
       </ul>
@@ -414,7 +416,7 @@
         <h1>Tablero gestión de tareas <span id="demoTag" class="demo" hidden>MODO DEMO</span></h1>
       </div>
       <div class="stats">
-        <div class="stat"><b id="sCreadas">0/0</b><span>HU creadas</span></div>
+        <div class="stat"><b id="sCreadas">0/0</b><span>HU cerradas</span></div>
         <div class="stat"><b id="sHA">0</b><span>HA registradas</span></div>
       </div>
       <input id="q" class="search" type="search" placeholder="Buscar ID o título…">
@@ -431,7 +433,7 @@
 <dialog id="dlgAz">
   <form id="formAz" method="dialog">
     <h3>Sincronizar con Azure DevOps</h3>
-    <p class="hint" style="margin:-4px 0 2px;font-size:13px">Trae las HU del sprint actual y sus HA. No cambia el estado, la meta ni las notas que ya tengas, y no modifica nada en Azure DevOps.</p>
+    <p class="hint" style="margin:-4px 0 2px;font-size:13px">Trae las HU y sus HA, y pone cada HU en la columna de su estado real en Azure. No cambia la meta ni las notas, y no modifica nada en Azure DevOps.</p>
     <label id="azSprintBox">Sprint
       <select id="azSprint" class="sel"><option value="">Sprint actual</option></select>
     </label>
@@ -474,16 +476,37 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 (() => {
-  const ESTADOS = [
-    { id:'por_hacer',     nombre:'Por hacer',     color:'var(--todo)', fg:'var(--on-todo)' },
-    { id:'en_desarrollo', nombre:'En desarrollo', color:'var(--dev)',  fg:'var(--on-dev)'  },
-    { id:'creada',        nombre:'Creada',        color:'var(--done)', fg:'var(--on-done)' },
+  // Columnas = estados reales del proceso en Azure DevOps (se cargan al entrar; esto es el respaldo)
+  const ESTADOS_BASE = [
+    { name:'New', color:'b2b2b2', category:'Proposed' },
+    { name:'Active', color:'007acc', category:'InProgress' },
+    { name:'Resolved', color:'ff9d00', category:'Resolved' },
+    { name:'Closed', color:'339933', category:'Completed' },
+    { name:'Removed', color:'ffffff', category:'Removed' },
   ];
+  const ORDEN_CAT = { Proposed:0, InProgress:1, Resolved:2, Completed:3, Removed:4 };
+  let estadosAz = ESTADOS_BASE;
+  try { const c = JSON.parse(localStorage.getItem('estados-azure')); if (Array.isArray(c) && c.length) estadosAz = c; } catch {}
+  let ESTADOS = [];
+  const fgDe = hex => { const n = parseInt(hex, 16); const l = (0.299*(n>>16&255) + 0.587*(n>>8&255) + 0.114*(n&255)) / 255; return l > 0.6 ? '#2C2A29' : '#fff'; };
+  function columnas(){
+    const lista = estadosAz.map(e => ({ ...e }));
+    for (const h of HU) if (h.estado && !lista.some(e => e.name === h.estado)) lista.push({ name:h.estado, color:'8a8887', category:'InProgress' });
+    lista.sort((a, b) => (ORDEN_CAT[a.category] ?? 2) - (ORDEN_CAT[b.category] ?? 2));
+    return lista
+      .filter(e => e.category !== 'Removed' || HU.some(h => h.estado === e.name))
+      .map(e => {
+        const hex = /^[0-9a-f]{6}$/i.test(e.color || '') && !/^f{6}$/i.test(e.color) ? e.color : '8a8887';
+        return { id:e.name, nombre:e.name, categoria:e.category, color:'#' + hex, fg:fgDe(hex) };
+      });
+  }
+  const cerrado = h => (ESTADOS.find(e => e.id === h.estado) || {}).categoria === 'Completed';
   const cfg = window.TABLERO_CONFIG || {};
   const DEMO = !cfg.SUPABASE_URL || !cfg.SUPABASE_ANON_KEY || !window.supabase;
   const $ = s => document.querySelector(s);
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const nombreEstado = id => (ESTADOS.find(e => e.id === id) || {}).nombre || id;
+  const LEGADO = { por_hacer:'New', en_desarrollo:'Active', creada:'Closed' };
+  const nombreEstado = id => LEGADO[id] || id;
   const toast = m => { const t = $('#toast'); t.textContent = m; t.classList.add('on'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('on'), 2600); };
   // ---------------- Tema claro / oscuro ----------------
   const sistemaOscuro = () => window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches;
@@ -543,7 +566,7 @@
       async load(){ return JSON.parse(JSON.stringify({ hu: db.hu, ha: db.ha })); },
       async createHU(row){
         if (db.hu.some(h => h.codigo === row.codigo)) throw { code:'23505', message:'duplicate key' };
-        db.hu.push({ id: uid(), estado:'por_hacer', notas:'', ...row }); write(db);
+        db.hu.push({ id: uid(), estado:'New', notas:'', ...row }); write(db);
       },
       async updateHU(id, patch){
         const h = db.hu.find(x => x.id === id);
@@ -609,11 +632,13 @@
   const vistos = new Set(); let ordenEntrada = 0;
   const setStat = (sel, v) => { const el = $(sel); if (el.textContent === String(v)) return; el.textContent = v; el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); };
   function render(){
-    const creadas = HU.filter(h => h.estado === 'creada').length;
+    ESTADOS = columnas();
+    $('#board').style.setProperty('--ncols', ESTADOS.length);
+    const creadas = HU.filter(cerrado).length;
     setStat('#sCreadas', `${creadas}/${HU.length}`);
     setStat('#sHA', HA.length);
     const ptop = $('#ptop');
-    if (ptop.children.length !== ESTADOS.length) ptop.innerHTML = ESTADOS.map(e => `<i style="width:0;background:${e.color}"></i>`).join('');
+    if (ptop.children.length !== ESTADOS.length || ptop.dataset.k !== ESTADOS.map(e => e.id).join('|')) ptop.dataset.k = ESTADOS.map(e => e.id).join('|'), ptop.innerHTML = ESTADOS.map(e => `<i style="width:0;background:${e.color}"></i>`).join('');
     ESTADOS.forEach((e, i) => {
       const n = HU.filter(h => h.estado === e.id).length;
       const el = ptop.children[i]; el.style.width = HU.length ? (n / HU.length * 100) + '%' : '0'; el.title = `${e.nombre}: ${n}`;
@@ -628,8 +653,8 @@
         ? `<div class="empty">Aún no tienes HU.<br>Crea la primera para empezar.</div>`
         : `<div class="empty">Arrastra aquí una HU</div>`;
       return `<section class="col">
-        <div class="col-h"><span class="dot" style="background:${e.color}"></span><h2>${e.nombre}</h2><span class="count">${items.length}</span></div>
-        <div class="list" data-estado="${e.id}">
+        <div class="col-h"><span class="dot" style="background:${e.color}"></span><h2>${esc(e.nombre)}</h2><span class="count">${items.length}</span></div>
+        <div class="list" data-estado="${esc(e.id)}">
           ${items.length ? items.map(h => tarjeta(h, e, ei)).join('') : vacio}
           ${ei === 0 ? '<button type="button" class="add-hu" data-nueva>+ Nueva HU</button>' : ''}
         </div></section>`;
@@ -644,17 +669,17 @@
   function tarjeta(h, e, ei){
     const n = haDe(h.id).length, meta = h.ha_esperadas;
     const pct = meta ? Math.min(100, n/meta*100) : (n ? 100 : 0);
-    const lista = meta != null && meta > 0 && n >= meta && h.estado !== 'creada';
+    const lista = meta != null && meta > 0 && n >= meta && !cerrado(h);
     const nueva = !vistos.has(h.id);
     return `<article class="card${nueva ? ' enter' : ''}" draggable="true" data-id="${esc(h.id)}" style="--c:${e.color};--i:${nueva ? ordenEntrada++ : 0};view-transition-name:hu-${esc(h.id)}">
       <div class="card-top">
         <span class="hu-id">${h.tipo && !/user story|historia de usuario|product backlog/i.test(h.tipo) ? '' : 'HU '}${esc(h.codigo)}</span>
         ${h.tipo && !/user story|historia de usuario|product backlog/i.test(h.tipo) ? `<span class="tipo">${esc(h.tipo)}</span>` : ''}
-        ${h.azure_estado ? `<span class="az" title="Estado en Azure DevOps${h.sprint ? ' · ' + esc(h.sprint) : ''}">${esc(h.azure_estado)}</span>` : ''}
+        ${h.azure_estado && h.azure_estado !== h.estado ? `<span class="az" title="Estado actual en Azure DevOps${h.sprint ? ' · ' + esc(h.sprint) : ''}">Azure: ${esc(h.azure_estado)}</span>` : ''}
         ${lista ? '<span class="ready">HA completas</span>' : ''}
         <span class="mv" style="margin-left:auto">
-          <button data-mv="-1" ${ei===0?'disabled':''} title="Mover a ${ei>0?ESTADOS[ei-1].nombre:''}" aria-label="Mover a la izquierda">◀</button>
-          <button data-mv="1" ${ei===2?'disabled':''} title="Mover a ${ei<2?ESTADOS[ei+1].nombre:''}" aria-label="Mover a la derecha">▶</button>
+          <button data-mv="-1" ${ei===0?'disabled':''} title="Mover a ${ei>0?esc(ESTADOS[ei-1].nombre):''}" aria-label="Mover a la izquierda">◀</button>
+          <button data-mv="1" ${ei===ESTADOS.length-1?'disabled':''} title="Mover a ${ei<ESTADOS.length-1?esc(ESTADOS[ei+1].nombre):''}" aria-label="Mover a la derecha">▶</button>
         </span>
       </div>
       <p class="card-t">${esc(h.titulo)}</p>
@@ -711,7 +736,7 @@
     if (HU.some(h => h.codigo === codigo)) { $('#nMsg').textContent = `Ya tienes una HU con el ID ${codigo}.`; return; }
     const orden = HU.reduce((mx, h) => Math.max(mx, h.orden), -1) + 1;
     try {
-      await api.createHU({ codigo, titulo, ha_esperadas: m === '' ? null : Math.max(0, parseInt(m, 10)), orden });
+      await api.createHU({ codigo, titulo, estado: (ESTADOS[0] || {}).id || 'New', ha_esperadas: m === '' ? null : Math.max(0, parseInt(m, 10)), orden });
       cerrarDlg(); toast(`HU ${codigo} creada`); await recargar();
     } catch (err) { $('#nMsg').textContent = errMsg(err); }
   };
@@ -741,7 +766,7 @@
       </div>
       <div class="d-b">
         <div class="sec"><h4>Estado</h4>
-          <div class="seg">${ESTADOS.map(e => `<button data-est="${e.id}" class="${e.id===h.estado?'on':''}" style="--c:${e.color};--fg:${e.fg}">${e.nombre}</button>`).join('')}</div>
+          <div class="seg">${ESTADOS.map(e => `<button data-est="${esc(e.id)}" class="${e.id===h.estado?'on':''}" style="--c:${e.color};--fg:${e.fg}">${esc(e.nombre)}</button>`).join('')}</div>
         </div>
         <div class="sec"><h4>HA esperadas según complejidad</h4>
           <div class="meta"><input id="meta" class="num" type="number" min="0" value="${h.ha_esperadas ?? ''}" placeholder="—">
@@ -801,14 +826,27 @@
       try { await api.deleteHU(h.id); cerrar(); toast(`HU ${h.codigo} eliminada`); await recargar(); } catch (err) { toast(errMsg(err)); }
     };
     try {
-      const hist = await api.historial(h.id);
+      let hist = await api.historial(h.id);
       const ul = q('#hist'); if (!ul) return;
+      hist = hist.filter(x => !(x.evento === 'estado' && (([a, b]) => nombreEstado(a) === nombreEstado(b))(String(x.detalle).split(' → '))));
       ul.innerHTML = hist.length ? hist.map(x => `<li><time>${fmt(x.created_at)}${x.usuario?' · '+esc(x.usuario):''}</time><b>${EV[x.evento]||esc(x.evento)}:</b> ${esc(x.evento==='estado' ? x.detalle.split(' → ').map(nombreEstado).join(' → ') : x.detalle)}</li>`).join('') : '<li>Sin movimientos todavía</li>';
     } catch (err) { console.error(err); }
   }
 
   // ---------------- Azure DevOps ----------------
   const dlgAz = $('#dlgAz');
+  async function cargarEstados(){
+    try {
+      const tipos = [...new Set(HU.map(h => h.tipo).filter(Boolean))];
+      const { data } = await sb.functions.invoke('sync-azure', { body: { accion: 'estados', tipos } });
+      if (!data?.estados?.length) return;
+      const nuevo = JSON.stringify(data.estados);
+      if (nuevo === JSON.stringify(estadosAz)) return;
+      estadosAz = data.estados;
+      try { localStorage.setItem('estados-azure', nuevo); } catch {}
+      conTransicion(render); if (abierta) renderDrawer();
+    } catch {}
+  }
   let sprintsCargados = false;
   async function cargarSprints(){
     if (sprintsCargados) return;
@@ -850,7 +888,7 @@
         res.innerHTML = `<b>${esc(d.sprint || d.base || '')}</b> · ${d.hu_total} tarjeta${d.hu_total === 1 ? '' : 's'}${d.sueltos ? ` (${d.sueltos} sin HU padre)` : ''}<br>${d.hu_nuevas} HU nuevas, ${d.hu_actualizadas} actualizadas · ${d.ha_nuevas} HA nuevas, ${d.ha_actualizadas} actualizadas` +
           (d.no_encontrados?.length ? `<br><span class="hint">No encontrados: ${d.no_encontrados.map(esc).join(', ')}</span>` : '');
         toast(`Sincronizado: ${d.hu_nuevas} HU y ${d.ha_nuevas} HA nuevas`);
-        await recargar();
+        await recargar(); cargarEstados();
       }
       res.hidden = false;
     } catch (err) {
@@ -865,7 +903,7 @@
     else {
       $('#who').textContent = usuario?.email || ''; $('#logout').hidden = false;
       try { await sb.rpc('reclamar_hu_iniciales'); } catch {}
-      try { const { data } = await sb.from('azure_config').select('owner_id').maybeSingle(); $('#syncAz').hidden = !data; } catch {}
+      try { const { data } = await sb.from('azure_config').select('owner_id').maybeSingle(); $('#syncAz').hidden = !data; if (data) recargar().then(cargarEstados); } catch {}
       let t; const deb = () => { clearTimeout(t); t = setTimeout(recargar, 250); };
       sb.channel('tablero-' + usuario.id)
         .on('postgres_changes', { event:'*', schema:'public', table:'hu' }, deb)

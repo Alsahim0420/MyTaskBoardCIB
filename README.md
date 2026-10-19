@@ -7,7 +7,7 @@ Cada usuario tiene su propia cuenta y solo ve y gestiona sus HU.
 
 ## Qué hace
 
-- Tres estados: **Por hacer → En desarrollo → Creada**. Se mueven arrastrando o con ◀ ▶ (móvil).
+- Las columnas son los **estados reales del proceso en Azure DevOps** (New, Active, Resolved, Closed…), leídos de Azure. Al sincronizar, cada HU queda en su estado de Azure; moverla a mano solo cambia el tablero.
 - Por cada HU: meta de **HA esperadas** según su complejidad, lista de HA (ID obligatorio, título opcional), notas e **historial automático** de cambios.
 - Crear, editar (ID y título) y eliminar HU.
 - Ingreso con correo y contraseña; los datos de cada usuario están aislados con Row Level Security.

@@ -1,7 +1,7 @@
 // Sincroniza HU (de un sprint, de una lista de IDs o bajo una Feature/Epic) y sus HA desde Azure DevOps al tablero.
 // - El PAT vive en el secreto AZDO_PAT (Supabase > Edge Functions > Secrets). Nunca en el repo.
 // - La organización, proyecto y equipo se leen de public.azure_config del usuario que llama.
-// - Solo lectura en Azure DevOps. En el tablero crea/actualiza HU y HA sin tocar estado, meta ni notas.
+// - Solo lectura en Azure DevOps. En el tablero crea/actualiza HU (con su estado real de Azure) y HA, sin tocar meta ni notas.
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const CORS = {
@@ -80,6 +80,27 @@ Deno.serve(async (req) => {
       const idx = its.findIndex((i: any) => i.timeFrame === "current");
       const desde = Math.max(0, (idx >= 0 ? idx : its.length) - 6);
       return json({ sprints: its.slice(desde, (idx >= 0 ? idx : its.length) + 2).reverse() });
+    }
+
+    // Estados reales del proceso en Azure DevOps (para las columnas del tablero)
+    if (body?.accion === "estados") {
+      // Solo los tipos que hay en el tablero (si no hay ninguno, los tipos de HU configurados)
+      const enTablero = ((Array.isArray(body?.tipos) ? body.tipos : []) as string[]).filter((t) => typeof t === "string" && t);
+      const tipos = [...new Set(enTablero.length ? enTablero : (cfg.tipos_hu as string[]))].slice(0, 15);
+      const CAT: Record<string, number> = { Proposed: 0, InProgress: 1, Resolved: 2, Completed: 3, Removed: 4 };
+      const mapa = new Map<string, { name: string; color: string; category: string; pos: number }>();
+      let i = 0;
+      for (const t of tipos) {
+        try {
+          const r = await az(`${org}/${proj}/_apis/wit/workitemtypes/${encodeURIComponent(t)}/states?api-version=7.1`);
+          for (const e of r.value ?? []) {
+            i++;
+            if (!mapa.has(e.name)) mapa.set(e.name, { name: e.name, color: e.color, category: e.category, pos: (CAT[e.category] ?? 2) * 1000 + i });
+          }
+        } catch (e) { if (e instanceof AzError && e.status === 401) throw e; }
+      }
+      const estados = [...mapa.values()].sort((a, b) => a.pos - b.pos).map(({ pos, ...e }) => e);
+      return json({ estados });
     }
 
     const sprintDe = (w?: WI) => String(w?.fields["System.IterationPath"] ?? "").split("\\").pop() || null;
@@ -226,6 +247,7 @@ Deno.serve(async (req) => {
         titulo: w.fields["System.Title"],
         tipo: w.fields["System.WorkItemType"],
         sprint: sprintDe(w),
+        estado: w.fields["System.State"],
         azure_estado: w.fields["System.State"],
         azure_url: `${org}/${proj}/_workitems/edit/${id}`,
         sincronizado_at: ahora,

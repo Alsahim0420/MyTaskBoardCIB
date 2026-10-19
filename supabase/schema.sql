@@ -11,8 +11,7 @@ create table public.hu (
   owner_id      uuid default auth.uid() references auth.users(id) on delete cascade,
   codigo        text not null,                    -- ID de la HU en Azure DevOps
   titulo        text not null,
-  estado        text not null default 'por_hacer'
-                check (estado in ('por_hacer', 'en_desarrollo', 'creada')),
+  estado        text not null default 'New',      -- estado del work item en Azure DevOps (New, Active, Closed…)
   ha_esperadas  int  check (ha_esperadas is null or ha_esperadas >= 0),
   orden         int  not null default 0,
   notas         text default '',
