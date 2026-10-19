@@ -107,6 +107,63 @@ Deno.serve(async (req) => {
       return json({ estado, titulo, rev: w.rev });
     }
 
+    // Detalle completo de un work item del tablero: campos, comentarios y enlaces
+    if (body?.accion === "detalle") {
+      const id = Number(body?.id);
+      if (!Number.isInteger(id) || id <= 0) return json({ error: "Falta el ID del work item." }, 400);
+      const [{ data: h }, { data: a }] = await Promise.all([
+        sb.from("hu").select("id").eq("codigo", String(id)).limit(1),
+        sb.from("ha").select("id").eq("codigo", String(id)).limit(1),
+      ]);
+      if (!h?.length && !a?.length) return json({ error: "Ese work item no está en tu tablero." }, 404);
+
+      const w = await az(`${org}/_apis/wit/workitems/${id}?$expand=all&api-version=7.1`);
+      const tipo = String(w.fields?.["System.WorkItemType"] ?? "");
+      const nombres: Record<string, string> = {};
+      try {
+        const f = await az(`${org}/${proj}/_apis/wit/workitemtypes/${encodeURIComponent(tipo)}/fields?api-version=7.1`);
+        for (const x of f.value ?? []) nombres[x.referenceName] = x.name;
+      } catch { /* sin nombres amigables */ }
+
+      const OCULTOS = new Set(["System.Id", "System.Rev", "System.Watermark", "System.AuthorizedAs", "System.AuthorizedDate",
+        "System.RevisedDate", "System.PersonId", "System.TeamProject", "System.NodeName", "System.AreaId", "System.IterationId",
+        "System.CommentCount", "System.History", "System.BoardColumnDone", "System.BoardLane"]);
+      const simple = (v: any) => (v && typeof v === "object" && "displayName" in v) ? v.displayName : v;
+      const campos = Object.entries(w.fields ?? {})
+        .filter(([k, v]) => !OCULTOS.has(k) && v !== null && v !== "" && !(k.startsWith("WEF_") && !/Kanban\.Column$/.test(k)))
+        .map(([k, v]) => ({ ref: k, nombre: nombres[k] ?? (/Kanban\.Column$/.test(k) ? "Columna del tablero" : k.split(".").pop()), valor: simple(v) }));
+
+      let comentarios: any[] = [];
+      for (const v of ["7.1-preview.4", "7.0-preview.3"]) {
+        try {
+          const c = await az(`${org}/${proj}/_apis/wit/workItems/${id}/comments?$top=30&order=desc&api-version=${v}`);
+          comentarios = (c.comments ?? []).map((x: any) => ({ autor: x.createdBy?.displayName ?? null, fecha: x.createdDate, texto: x.text ?? "" }));
+          break;
+        } catch (e) { if (e instanceof AzError && e.status === 401) throw e; }
+      }
+
+      const rels = (w.relations ?? []) as any[];
+      const wiIds = [...new Set(rels.filter((r) => /\/workItems\/\d+$/i.test(r.url)).map((r) => Number(String(r.url).split("/").pop())))];
+      const wiDet = new Map((wiIds.length ? await lote(wiIds) : []).map((x) => [x.id, x]));
+      const enlaces = rels.map((r) => {
+        const tipoRel = r.attributes?.name ?? r.rel;
+        if (/\/workItems\/\d+$/i.test(r.url)) {
+          const rid = Number(String(r.url).split("/").pop()), d = wiDet.get(rid);
+          return { clase: "workitem", relacion: tipoRel, id: rid, titulo: d?.fields["System.Title"] ?? null, tipo: d?.fields["System.WorkItemType"] ?? null,
+            estado: d?.fields["System.State"] ?? null, url: `${org}/${proj}/_workitems/edit/${rid}` };
+        }
+        if (r.rel === "ArtifactLink") {
+          const m = decodeURIComponent(String(r.url)).match(/vstfs:\/\/\/Git\/PullRequestId\/[^/]+\/([^/]+)\/(\d+)/i);
+          return { clase: "artefacto", relacion: tipoRel, titulo: m ? `Pull request ${m[2]}` : tipoRel, url: m ? `${org}/${proj}/_git/${m[1]}/pullrequest/${m[2]}` : null };
+        }
+        if (r.rel === "AttachedFile") return { clase: "adjunto", relacion: "Adjunto", titulo: r.attributes?.name ?? "Archivo", url: r.url };
+        if (r.rel === "Hyperlink") return { clase: "link", relacion: "Hipervínculo", titulo: r.attributes?.comment || r.url, url: r.url };
+        return { clase: "otro", relacion: tipoRel, titulo: r.attributes?.comment ?? null, url: null };
+      });
+
+      return json({ id, rev: w.rev, tipo, campos, comentarios, enlaces, url: `${org}/${proj}/_workitems/edit/${id}` });
+    }
+
     // Estados reales del proceso en Azure DevOps (para las columnas del tablero)
     if (body?.accion === "estados") {
       // Solo los tipos que hay en el tablero (si no hay ninguno, los tipos de HU configurados)

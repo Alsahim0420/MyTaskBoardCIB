@@ -73,7 +73,7 @@
   .search{border:1px solid #4A4847;background:#3A3938;color:#fff;border-radius:999px;padding:8px 14px;width:200px;max-width:100%}
   .search::placeholder{color:#A9A7A6}
   .sel-sprint{position:relative}
-  #app>header{z-index:30}
+  #app>header{z-index:15}
   .sel-sprint>button{display:inline-flex;align-items:center;gap:7px;border:1px solid #4A4847;background:#3A3938;color:#fff;border-radius:999px;padding:8px 12px;font:inherit;font-size:13.5px;font-weight:600;max-width:230px;transition:border-color .25s var(--ease),box-shadow .25s var(--ease)}
   .sel-sprint>button span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .sel-sprint>button .chev{color:#A9A7A6;transition:transform .25s var(--ease);flex:none}
@@ -132,7 +132,7 @@
   /* Drawer */
   .scrim{position:fixed;inset:0;background:rgba(10,8,5,.35);opacity:0;pointer-events:none;transition:opacity .2s;z-index:20}
   .scrim.on{opacity:1;pointer-events:auto}
-  aside{position:fixed;top:0;right:0;height:100%;width:min(480px,100%);background:var(--panel);border-left:1px solid var(--line);transform:translateX(100%);transition:transform .22s ease;z-index:21;display:flex;flex-direction:column}
+  aside{position:fixed;top:0;right:0;height:100%;width:min(580px,100%);background:var(--panel);border-left:1px solid var(--line);transform:translateX(100%);transition:transform .22s ease;z-index:21;display:flex;flex-direction:column}
   aside.on{transform:none}
   .d-h{padding:16px 20px 14px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
   .d-h .row{display:flex;align-items:center;gap:10px}
@@ -160,6 +160,43 @@
   .ha .del:hover{color:var(--danger)}
   .add{display:grid;grid-template-columns:130px 1fr auto;gap:6px;margin-top:8px}
   textarea{width:100%;min-height:80px;resize:vertical}
+  /* Detalle de Azure DevOps */
+  .azd-h{justify-content:space-between}
+  .azd-h button{background:none;border:none;color:var(--ink-3);font-size:11px;font-weight:700;letter-spacing:.04em;padding:2px 6px;border-radius:6px}
+  .azd-h button:hover{color:var(--ink);background:color-mix(in srgb,var(--ink) 6%,transparent)}
+  .azd-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .azd-grid div{background:var(--card);padding:9px 11px;min-width:0}
+  .azd-grid div:last-child:nth-child(odd){grid-column:1/-1}
+  .azd-grid dt{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);font-weight:700;margin-bottom:3px}
+  .azd-grid dd{margin:0;font-size:13.5px;color:var(--ink);overflow-wrap:anywhere}
+  .azd-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px}
+  .azd-tags span{font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;background:color-mix(in srgb,var(--yellow) 22%,transparent);color:var(--ink)}
+  .azd-blk{margin-top:14px}
+  .azd-blk>b{display:block;font-size:12px;font-weight:800;margin-bottom:6px;color:var(--ink-2)}
+  .azd-html{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:11px 13px;font-size:13.5px;line-height:1.55;color:var(--ink);overflow:auto;max-height:420px}
+  .azd-html>*:first-child{margin-top:0} .azd-html>*:last-child{margin-bottom:0}
+  .azd-html img{max-width:100%;height:auto;border-radius:6px}
+  .azd-html table{border-collapse:collapse;font-size:12.5px} .azd-html td,.azd-html th{border:1px solid var(--line-2);padding:4px 7px}
+  .azd-html a,.azd-lnk a{color:#0062AD}
+  :root[data-theme="dark"] .azd-html a,:root[data-theme="dark"] .azd-lnk a{color:#6CB8F6}
+  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .azd-html a,:root:not([data-theme="light"]) .azd-lnk a{color:#6CB8F6} }
+  .azd-com{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+  .azd-com li{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:9px 12px}
+  .azd-com small{display:block;font-size:11.5px;color:var(--ink-3);margin-bottom:4px} .azd-com small b{color:var(--ink-2)}
+  .azd-com .azd-html{border:none;padding:0;background:none;max-height:none}
+  .azd-lnk{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;font-size:13px}
+  .azd-lnk li{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+  .azd-lnk .rel{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-3);min-width:92px}
+  .azd-all{margin-top:14px;border:1px solid var(--line);border-radius:10px;background:var(--card)}
+  .azd-all summary{cursor:pointer;padding:9px 12px;font-size:12.5px;font-weight:800;color:var(--ink-2);list-style:none;display:flex;align-items:center;gap:8px}
+  .azd-all summary::-webkit-details-marker{display:none}
+  .azd-all summary::before{content:"▸";transition:transform .2s var(--ease)} .azd-all[open] summary::before{transform:rotate(90deg)}
+  .azd-all input{margin:0 12px 8px;width:calc(100% - 24px);padding:6px 9px;font-size:13px}
+  .azd-all table{width:100%;border-collapse:collapse;font-size:12.5px}
+  .azd-all td{border-top:1px solid var(--line);padding:6px 12px;vertical-align:top;overflow-wrap:anywhere}
+  .azd-all td:first-child{color:var(--ink-3);width:40%;font-weight:600}
+  .azd-sk{height:14px;border-radius:6px;margin:8px 0;background:linear-gradient(90deg,var(--line) 0%,color-mix(in srgb,var(--line) 40%,transparent) 50%,var(--line) 100%);background-size:200% 100%;animation:sk 1.2s linear infinite}
+  @keyframes sk{to{background-position:-200% 0}}
   .hist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;border-left:1px solid var(--line-2);margin-left:4px}
   .hist li{position:relative;padding:0 0 12px 14px;font-size:13px;color:var(--ink-2)}
   .hist li::before{content:"";position:absolute;left:-4px;top:5px;width:7px;height:7px;border-radius:50%;background:var(--line-2)}
@@ -749,6 +786,109 @@
     if (d?.error) throw new Error(d.error);
     return d;
   }
+  // ---- Detalle completo del work item (se pide a Azure al abrir la HU) ----
+  const DET = new Map();            // codigo -> { estado:'cargando'|'ok'|'error', data, error }
+  // Limpieza propia del HTML de Azure (lista blanca de etiquetas y atributos; nada de scripts ni estilos)
+  const TAGS_OK = new Set('P DIV SPAN BR B STRONG I EM U S STRIKE SUB SUP UL OL LI A IMG TABLE THEAD TBODY TFOOT TR TD TH H1 H2 H3 H4 H5 H6 PRE CODE BLOCKQUOTE HR'.split(' '));
+  const TAGS_FUERA = new Set('SCRIPT STYLE IFRAME OBJECT EMBED LINK META FORM INPUT BUTTON TEXTAREA SELECT SVG MATH NOSCRIPT TEMPLATE'.split(' '));
+  function limpiarHTML(html){
+    const doc = new DOMParser().parseFromString(`<body>${String(html ?? '')}</body>`, 'text/html');
+    const pasar = (nodo, destino) => {
+      for (const n of [...nodo.childNodes]) {
+        if (n.nodeType === 3) { destino.appendChild(document.createTextNode(n.nodeValue)); continue; }
+        if (n.nodeType !== 1 || TAGS_FUERA.has(n.tagName)) continue;
+        if (!TAGS_OK.has(n.tagName)) { pasar(n, destino); continue; }
+        const el = document.createElement(n.tagName.toLowerCase());
+        if (n.tagName === 'A') { const href = n.getAttribute('href') || ''; if (/^(https?:|mailto:)/i.test(href)) { el.href = href; el.target = '_blank'; el.rel = 'noopener'; } }
+        if (n.tagName === 'IMG') { const src = n.getAttribute('src') || ''; if (!/^https:/i.test(src)) continue; el.src = src; el.alt = n.getAttribute('alt') || 'imagen'; el.loading = 'lazy'; el.referrerPolicy = 'no-referrer'; }
+        if (n.tagName === 'TD' || n.tagName === 'TH') ['colspan','rowspan'].forEach(a => { const v = n.getAttribute(a); if (/^\d{1,2}$/.test(v || '')) el.setAttribute(a, v); });
+        pasar(n, el); destino.appendChild(el);
+      }
+    };
+    const frag = document.createDocumentFragment(); pasar(doc.body, frag); return frag;
+  }
+  const esHTML = v => typeof v === 'string' && /<\/?[a-z][\s\S]*>/i.test(v);
+  const textoPlano = v => { const d = document.createElement('div'); d.appendChild(limpiarHTML(String(v).replace(/<(br|\/p|\/div|\/li|\/tr|\/h\d)\b[^>]*>/gi, ' $&'))); return d.textContent.replace(/\s+/g, ' ').trim(); };
+  const fechaISO = v => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(v);
+  const fmtFecha = v => { try { return new Date(v).toLocaleString('es-CO', { dateStyle:'medium', timeStyle:'short' }); } catch { return v; } };
+  const fmtValor = v => v === true ? 'Sí' : v === false ? 'No' : fechaISO(v) ? fmtFecha(v) : esHTML(v) ? textoPlano(v) : String(v);
+  const PRINCIPALES = [
+    ['System.AssignedTo','Asignado a'], ['System.State','Estado'], ['System.Reason','Razón'],
+    ['Microsoft.VSTS.Common.Priority','Prioridad'], ['Microsoft.VSTS.Scheduling.StoryPoints','Story points'],
+    ['Microsoft.VSTS.Scheduling.Effort','Esfuerzo'], ['Microsoft.VSTS.Scheduling.OriginalEstimate','Estimado original'],
+    ['Microsoft.VSTS.Scheduling.RemainingWork','Trabajo restante'], ['Microsoft.VSTS.Scheduling.CompletedWork','Trabajo completado'],
+    ['Microsoft.VSTS.Common.Severity','Severidad'], ['Microsoft.VSTS.Common.ValueArea','Área de valor'],
+    ['System.IterationPath','Iteración'], ['System.AreaPath','Área'],
+    ['System.CreatedBy','Creado por'], ['System.CreatedDate','Creado'], ['System.ChangedBy','Modificado por'], ['System.ChangedDate','Modificado'],
+    ['Microsoft.VSTS.Common.ActivatedDate','Activado'], ['Microsoft.VSTS.Common.ClosedDate','Cerrado'], ['Microsoft.VSTS.Scheduling.TargetDate','Fecha objetivo'],
+  ];
+  const HTML_PRIMERO = ['System.Description','Microsoft.VSTS.Common.AcceptanceCriteria','Microsoft.VSTS.TCM.ReproSteps','Microsoft.VSTS.TCM.SystemInfo'];
+  function azDetHTML(h){
+    const st = DET.get(h.codigo);
+    const cab = `<h4 class="azd-h">Detalle en Azure DevOps<button type="button" data-azref ${st?.estado === 'cargando' ? 'disabled' : ''}>${st?.estado === 'cargando' ? 'Cargando…' : '↻ Actualizar'}</button></h4>`;
+    if (!st || st.estado === 'cargando') return cab + '<div class="azd-sk" style="width:90%"></div><div class="azd-sk" style="width:70%"></div><div class="azd-sk" style="width:80%"></div>';
+    if (st.estado === 'error') return cab + `<div class="empty" style="text-align:left">No pude traer el detalle: ${esc(st.error)}</div>`;
+    const d = st.data, mapa = new Map(d.campos.map(c => [c.ref, c]));
+    const usados = new Set(['System.Title','System.WorkItemType','System.Tags']);
+    const celdas = PRINCIPALES.filter(([r]) => mapa.has(r)).map(([r, n]) => { usados.add(r);
+      let v = mapa.get(r).valor; if (r === 'System.IterationPath' || r === 'System.AreaPath') v = String(v).split('\\').slice(-2).join(' › ');
+      return `<div><dt>${esc(n)}</dt><dd>${esc(fmtValor(v))}</dd></div>`; }).join('');
+    const tags = mapa.get('System.Tags') ? String(mapa.get('System.Tags').valor).split(';').map(t => t.trim()).filter(Boolean) : [];
+    const htmls = [...HTML_PRIMERO.filter(r => mapa.has(r)).map(r => mapa.get(r)),
+      ...d.campos.filter(c => !HTML_PRIMERO.includes(c.ref) && esHTML(c.valor) && textoPlano(c.valor))];
+    htmls.forEach(c => usados.add(c.ref));
+    const bloques = htmls.map(c => `<div class="azd-blk"><b>${esc(c.nombre)}</b><div class="azd-html" data-html="${esc(c.ref)}"></div></div>`).join('');
+    const coms = d.comentarios.length ? `<div class="azd-blk"><b>Comentarios (${d.comentarios.length})</b><ul class="azd-com">${d.comentarios.map((c, i) =>
+      `<li><small><b>${esc(c.autor || '—')}</b> · ${esc(fmtFecha(c.fecha))}</small><div class="azd-html" data-com="${i}"></div></li>`).join('')}</ul></div>` : '';
+    const lnks = d.enlaces.length ? `<div class="azd-blk"><b>Enlaces (${d.enlaces.length})</b><ul class="azd-lnk">${d.enlaces.map(l =>
+      `<li><span class="rel">${esc(l.relacion)}</span>${l.url ? `<a href="${esc(l.url)}" target="_blank" rel="noopener">${l.id ? esc(l.id) + ' · ' : ''}${esc(l.titulo || l.url)}</a>` : esc(l.titulo || '—')}${l.tipo ? ` <span class="tipo">${esc(l.tipo)}</span>` : ''}${l.estado ? ` <span class="az">${esc(l.estado)}</span>` : ''}</li>`).join('')}</ul></div>` : '';
+    const resto = d.campos.filter(c => !usados.has(c.ref)).sort((a, b) => a.nombre.localeCompare(b.nombre));
+    const todos = `<details class="azd-all"><summary>Todos los campos (${d.campos.length})</summary><input type="search" placeholder="Buscar campo…" data-azf>
+      <table>${[...d.campos].sort((a, b) => a.nombre.localeCompare(b.nombre)).map(c => `<tr data-n="${esc((c.nombre + ' ' + c.ref).toLowerCase())}"><td title="${esc(c.ref)}">${esc(c.nombre)}</td><td>${esc(fmtValor(c.valor)).slice(0, 600)}</td></tr>`).join('')}</table></details>`;
+    return cab + (celdas ? `<dl class="azd-grid" style="margin:0">${celdas}</dl>` : '') +
+      (tags.length ? `<div class="azd-tags">${tags.map(t => `<span>${esc(t)}</span>`).join('')}</div>` : '') +
+      bloques + coms + lnks + (resto.length || d.campos.length ? todos : '');
+  }
+  function pintarHTMLs(cont, d){
+    const mapa = new Map(d.campos.map(c => [c.ref, c]));
+    cont.querySelectorAll('[data-html]').forEach(el => el.replaceChildren(limpiarHTML(mapa.get(el.dataset.html)?.valor)));
+    cont.querySelectorAll('[data-com]').forEach(el => el.replaceChildren(limpiarHTML(d.comentarios[+el.dataset.com]?.texto)));
+    cont.querySelectorAll('.azd-html img').forEach(img => {
+      const fallo = () => { const a = document.createElement('a'); a.href = img.src; a.target = '_blank'; a.rel = 'noopener'; a.textContent = '🖼 Ver imagen en Azure'; img.replaceWith(a); };
+      if (img.complete && !img.naturalWidth) fallo(); else img.addEventListener('error', fallo, { once:true });
+    });
+  }
+  function azDetMontar(h){
+    const cont = drawer.querySelector('#azDet'); if (!cont) return;
+    const st = DET.get(h.codigo);
+    if (st?.estado === 'ok') pintarHTMLs(cont, st.data);
+    if (!st) azDetCargar(h);
+    cont.onclick = e => { if (e.target.closest('[data-azref]')) azDetCargar(h, true); };
+    cont.oninput = e => { if (!e.target.matches('[data-azf]')) return; const f = e.target.value.trim().toLowerCase();
+      cont.querySelectorAll('.azd-all tr').forEach(tr => tr.hidden = !!f && !tr.dataset.n.includes(f)); };
+  }
+  async function azDetCargar(h, forzar){
+    if (DET.get(h.codigo)?.estado === 'cargando') return;
+    DET.set(h.codigo, { estado:'cargando' }); azDetRepintar(h);
+    try {
+      const { data, error } = await sb.functions.invoke('sync-azure', { body: { accion: 'detalle', id: h.codigo } });
+      let d = data;
+      if (error) { try { d = await error.context.json(); } catch { d = { error: error.message }; } }
+      if (d?.error) throw new Error(d.error);
+      DET.set(h.codigo, { estado:'ok', data:d });
+      if (forzar) toast('Detalle actualizado desde Azure');
+    } catch (e) { DET.set(h.codigo, { estado:'error', error: e.message || String(e) }); }
+    azDetRepintar(h);
+  }
+  function azDetRepintar(h){
+    if (abierta !== h.id) return;
+    const cont = drawer.querySelector('#azDet'); if (!cont) return;
+    const abiertoTodos = cont.querySelector('.azd-all')?.open;
+    cont.innerHTML = azDetHTML(h);
+    if (abiertoTodos) cont.querySelector('.azd-all')?.setAttribute('open', '');
+    const st = DET.get(h.codigo); if (st?.estado === 'ok') pintarHTMLs(cont, st.data);
+  }
+
   async function mover(id, estado){
     const h = HU.find(x => x.id === id); if (!h || h.estado === estado) return;
     const prev = h.estado; h.estado = estado; conTransicion(render);
@@ -756,7 +896,7 @@
       if (enAzure(h)) {
         toast(`Actualizando ${h.codigo} en Azure DevOps…`);
         const d = await azActualizar(h, { estado });
-        h.estado = h.azure_estado = d.estado; conTransicion(render);
+        h.estado = h.azure_estado = d.estado; DET.delete(h.codigo); conTransicion(render);
         toast(`HU ${h.codigo} → ${d.estado} · actualizada en Azure`);
       } else {
         await api.updateHU(id, { estado }); toast(`HU ${h.codigo} → ${nombreEstado(estado)}`);
@@ -841,7 +981,7 @@
     const has = haDe(h.id);
     setTimeout(() => has.forEach(a => haVistas.add(a.id)), 0);
     const foco = document.activeElement;
-    if (foco && drawer.contains(foco) && foco.matches('textarea, .cod, .tit, #haCod, #haTit')) return; // no pisar mientras escribe
+    if (foco && drawer.contains(foco) && foco.matches('textarea, .cod, .tit, #haCod, #haTit, [data-azf]')) return; // no pisar mientras escribe
     drawer.innerHTML = `
       <div class="d-h">
         <div class="row"><span class="hint">HU</span><input class="cod" id="dCod" value="${esc(h.codigo)}" aria-label="ID de la HU" ${enAzure(h) ? 'readonly title="El ID viene de Azure DevOps"' : ''}><button class="x" id="cerrar" aria-label="Cerrar">×</button></div>
@@ -852,6 +992,7 @@
         <div class="sec"><h4>Estado</h4>
           <div class="seg">${ESTADOS.map(e => `<button data-est="${esc(e.id)}" class="${e.id===h.estado?'on':''}" style="--c:${e.color};--fg:${e.fg}">${esc(e.nombre)}</button>`).join('')}</div>
         </div>
+        ${enAzure(h) ? `<div class="sec" id="azDet">${azDetHTML(h)}</div>` : ''}
         <div class="sec"><h4>HA esperadas según complejidad</h4>
           <div class="meta"><input id="meta" class="num" type="number" min="0" value="${h.ha_esperadas ?? ''}" placeholder="—">
             <span class="hint">${has.length} registrada${has.length===1?'':'s'}${h.ha_esperadas!=null ? (has.length>=h.ha_esperadas?' · completas ✓':` · faltan ${h.ha_esperadas-has.length}`) : ''}</span></div>
@@ -870,6 +1011,7 @@
       </div>`;
     const q = s => drawer.querySelector(s);
     q('#cerrar').onclick = cerrar;
+    if (enAzure(h)) azDetMontar(h);
     q('#dCod').onchange = async e => {
       if (enAzure(h)) { e.target.value = h.codigo; return; }
       const v = e.target.value.trim();
@@ -883,7 +1025,7 @@
       if (!v) { e.target.value = h.titulo; return toast('El título de la HU es obligatorio'); }
       if (v === h.titulo) return;
       try {
-        if (enAzure(h)) { toast('Actualizando título en Azure DevOps…'); const d = await azActualizar(h, { titulo: v }); h.titulo = d.titulo; e.target.value = d.titulo; render(); toast('Título actualizado en Azure'); }
+        if (enAzure(h)) { toast('Actualizando título en Azure DevOps…'); const d = await azActualizar(h, { titulo: v }); h.titulo = d.titulo; DET.delete(h.codigo); e.target.value = d.titulo; render(); toast('Título actualizado en Azure'); }
         else { await api.updateHU(h.id, { titulo: v }); h.titulo = v; render(); toast('Título actualizado'); }
       }
       catch (err) { e.target.value = h.titulo; toast(errMsg(err)); }
