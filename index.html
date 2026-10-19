@@ -72,6 +72,13 @@
   .stat span{font-size:11px;color:#BDBBBA;text-transform:uppercase;letter-spacing:.06em}
   .search{border:1px solid #4A4847;background:#3A3938;color:#fff;border-radius:999px;padding:8px 14px;width:200px;max-width:100%}
   .search::placeholder{color:#A9A7A6}
+  label.sel-sprint{display:inline-flex;flex-direction:row;align-items:center;gap:7px;font-weight:600;font-size:13.5px;border:1px solid #4A4847;background:#3A3938;color:#fff;border-radius:999px;padding:0 6px 0 12px;transition:border-color .25s var(--ease),box-shadow .25s var(--ease)}
+  label.sel-sprint:focus-within,label.sel-sprint.on{border-color:#FDDA24;box-shadow:0 0 0 3px color-mix(in srgb,#FDDA24 25%,transparent)}
+  .sel-sprint.on svg{color:#FDDA24}
+  .sel-sprint select{appearance:none;-webkit-appearance:none;background:transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23A9A7A6' stroke-width='1.6'/%3E%3C/svg%3E") no-repeat right 8px center;border:none;color:inherit;font:inherit;font-size:13.5px;padding:8px 26px 8px 0;cursor:pointer;max-width:190px}
+  .sel-sprint select:focus{outline:none}
+  .sel-sprint option{color:#2C2A29;background:#fff}
+  .spr{font-family:var(--mono);font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:999px;background:color-mix(in srgb,var(--ink) 8%,transparent);color:var(--ink-2);white-space:nowrap}
   .user{display:flex;gap:8px;align-items:center;font-size:12px;color:#BDBBBA}
   .ghost{background:none;border:1px solid #6A6867;color:#fff;border-radius:999px;padding:6px 12px;font-size:13px}
   .ghost:hover{border-color:var(--yellow);color:var(--yellow)}
@@ -419,6 +426,7 @@
         <div class="stat"><b id="sCreadas">0/0</b><span>HU cerradas</span></div>
         <div class="stat"><b id="sHA">0</b><span>HA registradas</span></div>
       </div>
+      <label class="sel-sprint" title="Filtrar por sprint"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg><select id="fSprint" aria-label="Filtrar por sprint"><option value="">Todos los sprints</option></select></label>
       <input id="q" class="search" type="search" placeholder="Buscar ID o título…">
       <button id="syncAz" class="btn-az" type="button" hidden title="Traer HU y HA del sprint desde Azure DevOps"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 21v-5h5"/><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"/><path d="M21 3v5h-5"/></svg>Sincronizar sprint</button>
       <button id="nuevaHU" class="btn btn-y" type="button">+ Nueva HU</button>
@@ -611,6 +619,25 @@
 
   // ---------------- Estado de UI ----------------
   let HU = [], HA = [], abierta = null, filtro = '';
+  let fSprint = ''; try { fSprint = localStorage.getItem('filtro-sprint') || ''; } catch {}
+  const SIN_SPRINT = '__sin__';
+  const numSprint = n => { const m = String(n).match(/(\d+)\s*$/); return m ? +m[1] : -1; };
+  const enSprint = h => !fSprint || (fSprint === SIN_SPRINT ? !h.sprint : h.sprint === fSprint);
+  const corto = n => String(n).replace(/^sprint\s*/i, 'S');
+  function pintarSprints(){
+    const sel = $('#fSprint'); if (!sel) return;
+    const cuenta = new Map(); let sin = 0;
+    for (const h of HU) h.sprint ? cuenta.set(h.sprint, (cuenta.get(h.sprint) || 0) + 1) : sin++;
+    const lista = [...cuenta.keys()].sort((a, b) => numSprint(b) - numSprint(a) || a.localeCompare(b));
+    if (fSprint && fSprint !== SIN_SPRINT && !cuenta.has(fSprint) && HU.length) fSprint = '';
+    if (fSprint === SIN_SPRINT && !sin && HU.length) fSprint = '';
+    const html = `<option value="">Todos los sprints (${HU.length})</option>` +
+      lista.map(n => `<option value="${esc(n)}">${esc(n)} (${cuenta.get(n)})</option>`).join('') +
+      (sin ? `<option value="${SIN_SPRINT}">Sin sprint (${sin})</option>` : '');
+    if (sel.innerHTML !== html) sel.innerHTML = html;
+    sel.value = fSprint;
+    sel.closest('.sel-sprint').classList.toggle('on', !!fSprint);
+  }
   const haDe = id => HA.filter(a => a.hu_id === id);
 
   const firma = (hu, ha) => JSON.stringify([
@@ -634,23 +661,27 @@
   function render(){
     ESTADOS = columnas();
     $('#board').style.setProperty('--ncols', ESTADOS.length);
-    const creadas = HU.filter(cerrado).length;
-    setStat('#sCreadas', `${creadas}/${HU.length}`);
-    setStat('#sHA', HA.length);
+    pintarSprints();
+    const VIS = HU.filter(enSprint), visIds = new Set(VIS.map(h => h.id));
+    const creadas = VIS.filter(cerrado).length;
+    setStat('#sCreadas', `${creadas}/${VIS.length}`);
+    setStat('#sHA', HA.filter(a => visIds.has(a.hu_id)).length);
     const ptop = $('#ptop');
     if (ptop.children.length !== ESTADOS.length || ptop.dataset.k !== ESTADOS.map(e => e.id).join('|')) ptop.dataset.k = ESTADOS.map(e => e.id).join('|'), ptop.innerHTML = ESTADOS.map(e => `<i style="width:0;background:${e.color}"></i>`).join('');
     ESTADOS.forEach((e, i) => {
-      const n = HU.filter(h => h.estado === e.id).length;
-      const el = ptop.children[i]; el.style.width = HU.length ? (n / HU.length * 100) + '%' : '0'; el.title = `${e.nombre}: ${n}`;
+      const n = VIS.filter(h => h.estado === e.id).length;
+      const el = ptop.children[i]; el.style.width = VIS.length ? (n / VIS.length * 100) + '%' : '0'; el.title = `${e.nombre}: ${n}`;
     });
     ordenEntrada = 0;
 
     const f = filtro.trim().toLowerCase();
     $('#board').innerHTML = ESTADOS.map((e, ei) => {
-      const items = HU.filter(h => h.estado === e.id && (!f || h.codigo.toLowerCase().includes(f) || h.titulo.toLowerCase().includes(f)))
+      const items = VIS.filter(h => h.estado === e.id && (!f || h.codigo.toLowerCase().includes(f) || h.titulo.toLowerCase().includes(f)))
                       .sort((a,b) => a.orden - b.orden);
       const vacio = ei === 0 && !HU.length
         ? `<div class="empty">Aún no tienes HU.<br>Crea la primera para empezar.</div>`
+        : ei === 0 && !VIS.length
+        ? `<div class="empty">No hay HU en este sprint.</div>`
         : `<div class="empty">Arrastra aquí una HU</div>`;
       return `<section class="col">
         <div class="col-h"><span class="dot" style="background:${e.color}"></span><h2>${esc(e.nombre)}</h2><span class="count">${items.length}</span></div>
@@ -676,6 +707,7 @@
         <span class="hu-id">${h.tipo && !/user story|historia de usuario|product backlog/i.test(h.tipo) ? '' : 'HU '}${esc(h.codigo)}</span>
         ${h.tipo && !/user story|historia de usuario|product backlog/i.test(h.tipo) ? `<span class="tipo">${esc(h.tipo)}</span>` : ''}
         ${h.azure_estado && h.azure_estado !== h.estado ? `<span class="az" title="Estado actual en Azure DevOps${h.sprint ? ' · ' + esc(h.sprint) : ''}">Azure: ${esc(h.azure_estado)}</span>` : ''}
+        ${h.sprint ? `<span class="spr" title="${esc(h.sprint)}">${esc(corto(h.sprint))}</span>` : ''}
         ${lista ? '<span class="ready">HA completas</span>' : ''}
         <span class="mv" style="margin-left:auto">
           <button data-mv="-1" ${ei===0?'disabled':''} title="Mover a ${ei>0?esc(ESTADOS[ei-1].nombre):''}" aria-label="Mover a la izquierda">◀</button>
@@ -716,6 +748,10 @@
     abrir(c.dataset.id);
   });
   $('#q').addEventListener('input', e => { filtro = e.target.value; render(); });
+  $('#fSprint').addEventListener('change', e => {
+    fSprint = e.target.value; try { localStorage.setItem('filtro-sprint', fSprint); } catch {}
+    conTransicion(render);
+  });
 
   // ---------------- Nueva HU ----------------
   const dlg = $('#dlgHU');
