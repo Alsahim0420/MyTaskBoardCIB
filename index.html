@@ -72,12 +72,24 @@
   .stat span{font-size:11px;color:#BDBBBA;text-transform:uppercase;letter-spacing:.06em}
   .search{border:1px solid #4A4847;background:#3A3938;color:#fff;border-radius:999px;padding:8px 14px;width:200px;max-width:100%}
   .search::placeholder{color:#A9A7A6}
-  label.sel-sprint{display:inline-flex;flex-direction:row;align-items:center;gap:7px;font-weight:600;font-size:13.5px;border:1px solid #4A4847;background:#3A3938;color:#fff;border-radius:999px;padding:0 6px 0 12px;transition:border-color .25s var(--ease),box-shadow .25s var(--ease)}
-  label.sel-sprint:focus-within,label.sel-sprint.on{border-color:#FDDA24;box-shadow:0 0 0 3px color-mix(in srgb,#FDDA24 25%,transparent)}
-  .sel-sprint.on svg{color:#FDDA24}
-  .sel-sprint select{appearance:none;-webkit-appearance:none;background:transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23A9A7A6' stroke-width='1.6'/%3E%3C/svg%3E") no-repeat right 8px center;border:none;color:inherit;font:inherit;font-size:13.5px;padding:8px 26px 8px 0;cursor:pointer;max-width:190px}
-  .sel-sprint select:focus{outline:none}
-  .sel-sprint option{color:#2C2A29;background:#fff}
+  .sel-sprint{position:relative}
+  #app>header{z-index:30}
+  .sel-sprint>button{display:inline-flex;align-items:center;gap:7px;border:1px solid #4A4847;background:#3A3938;color:#fff;border-radius:999px;padding:8px 12px;font:inherit;font-size:13.5px;font-weight:600;max-width:230px;transition:border-color .25s var(--ease),box-shadow .25s var(--ease)}
+  .sel-sprint>button span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .sel-sprint>button .chev{color:#A9A7A6;transition:transform .25s var(--ease);flex:none}
+  .sel-sprint.abierto>button .chev{transform:rotate(180deg)}
+  .sel-sprint>button:focus-visible,.sel-sprint.abierto>button,.sel-sprint.on>button{border-color:#FDDA24;box-shadow:0 0 0 3px color-mix(in srgb,#FDDA24 25%,transparent);outline:none}
+  .sel-sprint.on>button svg:first-child{color:#FDDA24}
+  .spr-pop{position:absolute;z-index:40;top:calc(100% + 8px);left:0;min-width:230px;max-height:340px;overflow:auto;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:12px;box-shadow:0 18px 40px rgba(0,0,0,.28);padding:6px;opacity:0;transform:translateY(-6px) scale(.98);transform-origin:top left;pointer-events:none;transition:opacity .2s var(--ease),transform .2s var(--ease)}
+  .sel-sprint.abierto .spr-pop{opacity:1;transform:none;pointer-events:auto}
+  .spr-pop label{display:flex;flex-direction:row;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;font-size:13.5px;font-weight:600;color:var(--ink);cursor:pointer}
+  .spr-pop label:hover{background:color-mix(in srgb,var(--ink) 6%,transparent)}
+  .spr-pop label small{margin-left:auto;font-family:var(--mono);font-size:11.5px;color:var(--ink-3);font-weight:600}
+  .spr-pop input{accent-color:#FDDA24;width:16px;height:16px;margin:0}
+  .spr-pop hr{border:none;border-top:1px solid var(--line);margin:4px 2px}
+  .spr-pop .acc{display:flex;gap:6px;padding:4px 4px 2px}
+  .spr-pop .acc button{flex:1;background:none;border:1px solid var(--line-2);color:var(--ink-2);border-radius:8px;padding:6px;font-size:12px;font-weight:700}
+  .spr-pop .acc button:hover{border-color:#FDDA24;color:var(--ink)}
   .spr{font-family:var(--mono);font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:999px;background:color-mix(in srgb,var(--ink) 8%,transparent);color:var(--ink-2);white-space:nowrap}
   .user{display:flex;gap:8px;align-items:center;font-size:12px;color:#BDBBBA}
   .ghost{background:none;border:1px solid #6A6867;color:#fff;border-radius:999px;padding:6px 12px;font-size:13px}
@@ -426,7 +438,7 @@
         <div class="stat"><b id="sCreadas">0/0</b><span>HU cerradas</span></div>
         <div class="stat"><b id="sHA">0</b><span>HA registradas</span></div>
       </div>
-      <label class="sel-sprint" title="Filtrar por sprint"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg><select id="fSprint" aria-label="Filtrar por sprint"><option value="">Todos los sprints</option></select></label>
+      <div class="sel-sprint" id="fSprintBox"><button type="button" id="fSprintBtn" aria-haspopup="true" aria-expanded="false" title="Filtrar por sprint"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg><span id="fSprintTxt">Todos los sprints</span><svg class="chev" width="10" height="6" viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></button><div class="spr-pop" id="fSprintPop" role="group" aria-label="Sprints"></div></div>
       <input id="q" class="search" type="search" placeholder="Buscar ID o título…">
       <button id="syncAz" class="btn-az" type="button" hidden title="Traer HU y HA del sprint desde Azure DevOps"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 21v-5h5"/><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"/><path d="M21 3v5h-5"/></svg>Sincronizar sprint</button>
       <button id="nuevaHU" class="btn btn-y" type="button">+ Nueva HU</button>
@@ -619,25 +631,30 @@
 
   // ---------------- Estado de UI ----------------
   let HU = [], HA = [], abierta = null, filtro = '';
-  let fSprint = ''; try { fSprint = localStorage.getItem('filtro-sprint') || ''; } catch {}
+  let fSprint = new Set(); try { const v = JSON.parse(localStorage.getItem('filtro-sprints') || '[]'); if (Array.isArray(v)) fSprint = new Set(v); } catch {}
+  const guardarFiltro = () => { try { localStorage.setItem('filtro-sprints', JSON.stringify([...fSprint])); } catch {} };
   const SIN_SPRINT = '__sin__';
   const numSprint = n => { const m = String(n).match(/(\d+)\s*$/); return m ? +m[1] : -1; };
-  const enSprint = h => !fSprint || (fSprint === SIN_SPRINT ? !h.sprint : h.sprint === fSprint);
+  const enSprint = h => !fSprint.size || fSprint.has(h.sprint || SIN_SPRINT);
   const corto = n => String(n).replace(/^sprint\s*/i, 'S');
   function pintarSprints(){
-    const sel = $('#fSprint'); if (!sel) return;
+    const pop = $('#fSprintPop'); if (!pop) return;
     const cuenta = new Map(); let sin = 0;
     for (const h of HU) h.sprint ? cuenta.set(h.sprint, (cuenta.get(h.sprint) || 0) + 1) : sin++;
     const lista = [...cuenta.keys()].sort((a, b) => numSprint(b) - numSprint(a) || a.localeCompare(b));
-    if (fSprint && fSprint !== SIN_SPRINT && !cuenta.has(fSprint) && HU.length) fSprint = '';
-    if (fSprint === SIN_SPRINT && !sin && HU.length) fSprint = '';
-    const html = `<option value="">Todos los sprints (${HU.length})</option>` +
-      lista.map(n => `<option value="${esc(n)}">${esc(n)} (${cuenta.get(n)})</option>`).join('') +
-      (sin ? `<option value="${SIN_SPRINT}">Sin sprint (${sin})</option>` : '');
-    if (sel.innerHTML !== html) sel.innerHTML = html;
-    sel.value = fSprint;
-    sel.closest('.sel-sprint').classList.toggle('on', !!fSprint);
+    if (sin) lista.push(SIN_SPRINT);
+    if (HU.length) for (const v of [...fSprint]) if (!lista.includes(v)) fSprint.delete(v);
+    const nombre = v => v === SIN_SPRINT ? 'Sin sprint' : v;
+    const html = `<label><input type="checkbox" data-todos ${fSprint.size ? '' : 'checked'}>Todos los sprints<small>${HU.length}</small></label><hr>` +
+      lista.map(v => `<label><input type="checkbox" data-spr="${esc(v)}" ${fSprint.has(v) ? 'checked' : ''}>${esc(nombre(v))}<small>${v === SIN_SPRINT ? sin : cuenta.get(v)}</small></label>`).join('') +
+      (lista.length > 1 ? `<hr><div class="acc"><button type="button" data-ult="2">Últimos 2</button><button type="button" data-ult="3">Últimos 3</button></div>` : '');
+    if (pop.innerHTML !== html) pop.innerHTML = html;
+    const sel = [...fSprint].sort((a, b) => numSprint(b) - numSprint(a));
+    $('#fSprintTxt').textContent = !sel.length ? 'Todos los sprints' : sel.length === 1 ? nombre(sel[0]) : sel.length <= 3 ? sel.map(v => v === SIN_SPRINT ? 'Sin sprint' : corto(v)).join(', ') : `${sel.length} sprints`;
+    $('#fSprintBox').classList.toggle('on', !!fSprint.size);
+    pintarSprints.lista = lista;
   }
+
   const haDe = id => HA.filter(a => a.hu_id === id);
 
   const firma = (hu, ha) => JSON.stringify([
@@ -748,9 +765,21 @@
     abrir(c.dataset.id);
   });
   $('#q').addEventListener('input', e => { filtro = e.target.value; render(); });
-  $('#fSprint').addEventListener('change', e => {
-    fSprint = e.target.value; try { localStorage.setItem('filtro-sprint', fSprint); } catch {}
-    conTransicion(render);
+  const boxS = $('#fSprintBox'), btnS = $('#fSprintBtn');
+  const abrirSprints = on => { boxS.classList.toggle('abierto', on); btnS.setAttribute('aria-expanded', String(on)); };
+  btnS.addEventListener('click', () => abrirSprints(!boxS.classList.contains('abierto')));
+  document.addEventListener('click', e => { if (!boxS.contains(e.target)) abrirSprints(false); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && boxS.classList.contains('abierto')) { abrirSprints(false); btnS.focus(); } });
+  $('#fSprintPop').addEventListener('change', e => {
+    const c = e.target;
+    if (c.matches('[data-todos]')) fSprint.clear();
+    else if (c.dataset.spr) c.checked ? fSprint.add(c.dataset.spr) : fSprint.delete(c.dataset.spr);
+    guardarFiltro(); conTransicion(render);
+  });
+  $('#fSprintPop').addEventListener('click', e => {
+    const b = e.target.closest('[data-ult]'); if (!b) return;
+    fSprint = new Set((pintarSprints.lista || []).filter(v => v !== SIN_SPRINT).slice(0, +b.dataset.ult));
+    guardarFiltro(); conTransicion(render);
   });
 
   // ---------------- Nueva HU ----------------
