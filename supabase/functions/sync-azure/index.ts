@@ -1,7 +1,8 @@
 // Sincroniza HU (de un sprint, de una lista de IDs o bajo una Feature/Epic) y sus HA desde Azure DevOps al tablero.
 // - El PAT vive en el secreto AZDO_PAT (Supabase > Edge Functions > Secrets). Nunca en el repo.
 // - La organización, proyecto y equipo se leen de public.azure_config del usuario que llama.
-// - Solo lectura en Azure DevOps. En el tablero crea/actualiza HU (con su estado real de Azure) y HA, sin tocar meta ni notas.
+// - Al sincronizar solo lee Azure DevOps: crea/actualiza HU (con su estado real) y HA en el tablero, sin tocar meta ni notas.
+// - accion "actualizar": cambia el estado o el título de una HU que ya está en el tablero del usuario (requiere PAT con Work Items Read & Write).
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const CORS = {
@@ -42,7 +43,7 @@ Deno.serve(async (req) => {
       .split(/[^0-9]+/).filter(Boolean).map(Number))].slice(0, 300);
     const hermanas = body?.hermanas === true;
     const sprintPedido: string | null = typeof body?.sprint === "string" && body.sprint ? body.sprint : null;
-    if (modo === "id" && !idsEntrada.length) return json({ error: "Escribe uno o varios IDs de HU, Feature o Epic." }, 400);
+    if (modo === "id" && !idsEntrada.length && !body?.accion) return json({ error: "Escribe uno o varios IDs de HU, Feature o Epic." }, 400);
 
     const org = String(cfg.org_url).replace(/\/+$/, "");
     const proj = encodeURIComponent(cfg.project);
@@ -57,7 +58,7 @@ Deno.serve(async (req) => {
       const r = await fetch(url, { ...init, headers: { ...headers, ...(init.headers ?? {}) }, redirect: "manual" });
       const ct = r.headers.get("content-type") ?? "";
       if (r.status === 401 || r.status === 203 || (r.status >= 300 && r.status < 400) || (r.ok && !ct.includes("json"))) {
-        throw new AzError("Azure DevOps rechazó el token: puede estar vencido, revocado o sin permiso de Work Items (Read).", 401);
+        throw new AzError("Azure DevOps rechazó el token: puede estar vencido, revocado o sin permiso de Work Items (Read, o Read & Write para editar).", 401);
       }
       if (r.status === 403) {
         const t = await r.text();
@@ -65,7 +66,9 @@ Deno.serve(async (req) => {
       }
       if (!r.ok) {
         const t = await r.text();
-        throw new AzError(`Azure DevOps respondió ${r.status}: ${t.slice(0, 300)}`, 502);
+        let msg = t.slice(0, 300);
+        try { msg = JSON.parse(t).message ?? msg; } catch { /* texto plano */ }
+        throw new AzError(r.status === 400 ? `Azure DevOps no aceptó el cambio: ${msg}` : `Azure DevOps respondió ${r.status}: ${msg}`, r.status === 400 ? 400 : 502);
       }
       return r.json();
     };
@@ -80,6 +83,28 @@ Deno.serve(async (req) => {
       const idx = its.findIndex((i: any) => i.timeFrame === "current");
       const desde = Math.max(0, (idx >= 0 ? idx : its.length) - 6);
       return json({ sprints: its.slice(desde, (idx >= 0 ? idx : its.length) + 2).reverse() });
+    }
+
+    // Editar en Azure DevOps una HU del tablero (estado y/o título)
+    if (body?.accion === "actualizar") {
+      const id = Number(body?.id);
+      if (!Number.isInteger(id) || id <= 0) return json({ error: "Falta el ID del work item." }, 400);
+      const { data: fila, error: ef } = await sb.from("hu").select("id").eq("codigo", String(id)).maybeSingle();
+      if (ef) throw ef;
+      if (!fila) return json({ error: "Esa HU no está en tu tablero." }, 404);
+      const ops: { op: string; path: string; value: string }[] = [];
+      if (typeof body?.estado === "string" && body.estado.trim()) ops.push({ op: "add", path: "/fields/System.State", value: body.estado.trim() });
+      if (typeof body?.titulo === "string" && body.titulo.trim()) ops.push({ op: "add", path: "/fields/System.Title", value: body.titulo.trim().slice(0, 255) });
+      if (!ops.length) return json({ error: "No hay cambios para enviar." }, 400);
+      const w = await az(`${org}/_apis/wit/workitems/${id}?api-version=7.1`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json-patch+json" },
+        body: JSON.stringify(ops),
+      });
+      const estado = w.fields?.["System.State"], titulo = w.fields?.["System.Title"];
+      const { error: eu } = await sb.from("hu").update({ estado, azure_estado: estado, titulo, sincronizado_at: new Date().toISOString() }).eq("id", fila.id);
+      if (eu) throw eu;
+      return json({ estado, titulo, rev: w.rev });
     }
 
     // Estados reales del proceso en Azure DevOps (para las columnas del tablero)

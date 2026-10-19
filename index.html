@@ -137,6 +137,7 @@
   .d-h{padding:16px 20px 14px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
   .d-h .row{display:flex;align-items:center;gap:10px}
   .d-h .cod{font-family:var(--mono);font-size:13px;width:140px;padding:5px 9px}
+  .d-h .cod[readonly]{border-color:transparent;background:transparent;cursor:default}
   .d-h .tit{font-size:17px;font-weight:800;width:100%;border-color:transparent;background:transparent;padding:6px 8px;margin-left:-8px}
   .d-h .tit:hover{border-color:var(--line-2)}
   .x{margin-left:auto;background:none;border:none;font-size:22px;color:var(--ink-3);line-height:1}
@@ -453,7 +454,7 @@
 <dialog id="dlgAz">
   <form id="formAz" method="dialog">
     <h3>Sincronizar con Azure DevOps</h3>
-    <p class="hint" style="margin:-4px 0 2px;font-size:13px">Trae las HU y sus HA, y pone cada HU en la columna de su estado real en Azure. No cambia la meta ni las notas, y no modifica nada en Azure DevOps.</p>
+    <p class="hint" style="margin:-4px 0 2px;font-size:13px">Trae las HU y sus HA, y pone cada HU en la columna de su estado real en Azure. No cambia la meta ni las notas. Sincronizar no modifica nada en Azure; mover una HU o cambiar su título sí se guarda allá.</p>
     <label id="azSprintBox">Sprint
       <select id="azSprint" class="sel"><option value="">Sprint actual</option></select>
     </label>
@@ -739,11 +740,29 @@
     </article>`;
   }
 
+  // HU traídas de Azure: los cambios de estado y título se escriben también en Azure DevOps
+  const enAzure = h => !DEMO && !!h?.azure_url && /^\d+$/.test(h.codigo);
+  async function azActualizar(h, cambios){
+    const { data, error } = await sb.functions.invoke('sync-azure', { body: { accion: 'actualizar', id: h.codigo, ...cambios } });
+    let d = data;
+    if (error) { try { d = await error.context.json(); } catch { d = { error: error.message }; } }
+    if (d?.error) throw new Error(d.error);
+    return d;
+  }
   async function mover(id, estado){
     const h = HU.find(x => x.id === id); if (!h || h.estado === estado) return;
     const prev = h.estado; h.estado = estado; conTransicion(render);
-    try { await api.updateHU(id, { estado }); toast(`HU ${h.codigo} → ${nombreEstado(estado)}`); }
-    catch (e) { h.estado = prev; toast('No se pudo mover: ' + errMsg(e)); recargar(); }
+    try {
+      if (enAzure(h)) {
+        toast(`Actualizando ${h.codigo} en Azure DevOps…`);
+        const d = await azActualizar(h, { estado });
+        h.estado = h.azure_estado = d.estado; conTransicion(render);
+        toast(`HU ${h.codigo} → ${d.estado} · actualizada en Azure`);
+      } else {
+        await api.updateHU(id, { estado }); toast(`HU ${h.codigo} → ${nombreEstado(estado)}`);
+      }
+    }
+    catch (e) { h.estado = prev; conTransicion(render); if (abierta) renderDrawer(); toast('No se pudo mover: ' + errMsg(e)); recargar(); }
   }
 
   // Drag & drop + clics del tablero
@@ -825,7 +844,7 @@
     if (foco && drawer.contains(foco) && foco.matches('textarea, .cod, .tit, #haCod, #haTit')) return; // no pisar mientras escribe
     drawer.innerHTML = `
       <div class="d-h">
-        <div class="row"><span class="hint">HU</span><input class="cod" id="dCod" value="${esc(h.codigo)}" aria-label="ID de la HU"><button class="x" id="cerrar" aria-label="Cerrar">×</button></div>
+        <div class="row"><span class="hint">HU</span><input class="cod" id="dCod" value="${esc(h.codigo)}" aria-label="ID de la HU" ${enAzure(h) ? 'readonly title="El ID viene de Azure DevOps"' : ''}><button class="x" id="cerrar" aria-label="Cerrar">×</button></div>
         <input class="tit" id="dTit" value="${esc(h.titulo)}" aria-label="Título de la HU">
         ${h.azure_url ? `<div class="row" style="gap:10px;flex-wrap:wrap"><a class="az-link" href="${esc(h.azure_url)}" target="_blank" rel="noopener">Abrir en Azure DevOps ↗</a>${h.tipo ? `<span class="tipo">${esc(h.tipo)}</span>` : ''}${h.azure_estado ? `<span class="az">${esc(h.azure_estado)}</span>` : ''}${h.sprint ? `<span class="hint">${esc(h.sprint)}</span>` : ''}</div>` : ''}
       </div>
@@ -852,6 +871,7 @@
     const q = s => drawer.querySelector(s);
     q('#cerrar').onclick = cerrar;
     q('#dCod').onchange = async e => {
+      if (enAzure(h)) { e.target.value = h.codigo; return; }
       const v = e.target.value.trim();
       if (!v) { e.target.value = h.codigo; return toast('El ID de la HU es obligatorio'); }
       if (v === h.codigo) return;
@@ -862,7 +882,10 @@
       const v = e.target.value.trim();
       if (!v) { e.target.value = h.titulo; return toast('El título de la HU es obligatorio'); }
       if (v === h.titulo) return;
-      try { await api.updateHU(h.id, { titulo: v }); h.titulo = v; render(); toast('Título actualizado'); }
+      try {
+        if (enAzure(h)) { toast('Actualizando título en Azure DevOps…'); const d = await azActualizar(h, { titulo: v }); h.titulo = d.titulo; e.target.value = d.titulo; render(); toast('Título actualizado en Azure'); }
+        else { await api.updateHU(h.id, { titulo: v }); h.titulo = v; render(); toast('Título actualizado'); }
+      }
       catch (err) { e.target.value = h.titulo; toast(errMsg(err)); }
     };
     drawer.querySelectorAll('[data-est]').forEach(b => b.onclick = async () => { await mover(h.id, b.dataset.est); renderDrawer(); });
