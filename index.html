@@ -326,6 +326,25 @@
   @media (prefers-reduced-motion: reduce){
     *,*::before,*::after{animation-duration:.01ms!important;animation-delay:0s!important;transition-duration:.01ms!important}
   }
+  /* Azure DevOps */
+  .btn-az{background:none;border:1px solid #6A6867;color:#fff;border-radius:999px;padding:8px 14px;font-weight:700;font-size:13px;display:inline-flex;align-items:center;gap:7px}
+  .btn-az:hover{border-color:var(--yellow);color:var(--yellow)}
+  .btn-az svg{transition:transform .6s var(--ease)}
+  .btn-az.girando svg{animation:spin 1s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .az{font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:999px;background:color-mix(in srgb,#0078D4 14%,transparent);color:#0062AD;white-space:nowrap}
+  :root[data-theme="dark"] .az{color:#6CB8F6}
+  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .az{color:#6CB8F6} }
+  .az-link{font-size:12.5px;font-weight:700;color:var(--ink-2);text-decoration:none;display:inline-flex;gap:6px;align-items:center}
+  .az-link:hover{color:var(--ink);text-decoration:underline}
+  .ha .meta-az{display:flex;gap:6px;align-items:center;margin-top:3px;font-size:11.5px;color:var(--ink-3)}
+  .opts{display:flex;flex-direction:column;gap:8px}
+  .opt{display:flex;flex-direction:row;gap:10px;align-items:flex-start;border:1px solid var(--line-2);border-radius:10px;padding:10px 12px;cursor:pointer;font-size:14px;font-weight:600;color:var(--ink);transition:border-color .2s,background-color .2s}
+  .opt small{display:block;font-weight:400;color:var(--ink-3);font-size:12.5px;margin-top:2px}
+  .opt:has(input:checked){border-color:var(--yellow);background:color-mix(in srgb,var(--yellow) 12%,transparent)}
+  .opt input{margin-top:3px;accent-color:#2C2A29}
+  .res{font-size:13.5px;line-height:1.5;border-radius:10px;padding:10px 12px;background:color-mix(in srgb,var(--ink) 5%,transparent)}
+  .res.err{background:color-mix(in srgb,var(--danger) 10%,transparent);color:var(--danger)}
   [hidden]{display:none!important}
 </style>
 </head>
@@ -391,6 +410,7 @@
         <div class="stat"><b id="sHA">0</b><span>HA registradas</span></div>
       </div>
       <input id="q" class="search" type="search" placeholder="Buscar ID o título…">
+      <button id="syncAz" class="btn-az" type="button" hidden title="Traer HU y HA del sprint desde Azure DevOps"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 21v-5h5"/><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"/><path d="M21 3v5h-5"/></svg>Sincronizar sprint</button>
       <button id="nuevaHU" class="btn btn-y" type="button">+ Nueva HU</button>
       <div class="tema" role="group" aria-label="Tema de la interfaz"><button type="button" data-tema="light" aria-pressed="false">☀ Claro</button><button type="button" data-tema="dark" aria-pressed="false">☾ Oscuro</button></div>
       <div class="user"><span id="who"></span><button id="logout" class="ghost" hidden>Salir</button></div>
@@ -399,6 +419,22 @@
   </header>
   <main id="board" class="intro"></main>
 </div>
+
+<dialog id="dlgAz">
+  <form id="formAz" method="dialog">
+    <h3>Sincronizar con Azure DevOps</h3>
+    <p class="hint" style="margin:-4px 0 2px;font-size:13px">Trae las HU del sprint actual y sus HA. No cambia el estado, la meta ni las notas que ya tengas, y no modifica nada en Azure DevOps.</p>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="modo" value="mias" checked><span>Solo mis HU<small>Las asignadas a mí o que tienen HA asignadas a mí</small></span></label>
+      <label class="opt"><input type="radio" name="modo" value="todas"><span>Todo el sprint del equipo<small>Todas las HU del sprint actual</small></span></label>
+    </div>
+    <div id="azRes" class="res" hidden></div>
+    <div class="row-end">
+      <button type="button" class="btn btn-ghost" id="azCancel">Cerrar</button>
+      <button type="submit" class="btn btn-y" id="azGo">Sincronizar</button>
+    </div>
+  </form>
+</dialog>
 
 <dialog id="dlgHU">
   <form id="formHU" method="dialog">
@@ -539,8 +575,8 @@
   const haDe = id => HA.filter(a => a.hu_id === id);
 
   const firma = (hu, ha) => JSON.stringify([
-    hu.map(h => [h.id, h.codigo, h.titulo, h.estado, h.ha_esperadas, h.orden, h.notas]),
-    ha.map(a => [a.id, a.hu_id, a.codigo, a.titulo])
+    hu.map(h => [h.id, h.codigo, h.titulo, h.estado, h.ha_esperadas, h.orden, h.notas, h.azure_estado, h.sprint]),
+    ha.map(a => [a.id, a.hu_id, a.codigo, a.titulo, a.azure_estado, a.asignado])
   ]);
   let cargado = false;
   async function recargar(){
@@ -597,6 +633,7 @@
     return `<article class="card${nueva ? ' enter' : ''}" draggable="true" data-id="${esc(h.id)}" style="--c:${e.color};--i:${nueva ? ordenEntrada++ : 0};view-transition-name:hu-${esc(h.id)}">
       <div class="card-top">
         <span class="hu-id">HU ${esc(h.codigo)}</span>
+        ${h.azure_estado ? `<span class="az" title="Estado en Azure DevOps${h.sprint ? ' · ' + esc(h.sprint) : ''}">${esc(h.azure_estado)}</span>` : ''}
         ${lista ? '<span class="ready">HA completas</span>' : ''}
         <span class="mv" style="margin-left:auto">
           <button data-mv="-1" ${ei===0?'disabled':''} title="Mover a ${ei>0?ESTADOS[ei-1].nombre:''}" aria-label="Mover a la izquierda">◀</button>
@@ -683,6 +720,7 @@
       <div class="d-h">
         <div class="row"><span class="hint">HU</span><input class="cod" id="dCod" value="${esc(h.codigo)}" aria-label="ID de la HU"><button class="x" id="cerrar" aria-label="Cerrar">×</button></div>
         <input class="tit" id="dTit" value="${esc(h.titulo)}" aria-label="Título de la HU">
+        ${h.azure_url ? `<div class="row" style="gap:10px;flex-wrap:wrap"><a class="az-link" href="${esc(h.azure_url)}" target="_blank" rel="noopener">Abrir en Azure DevOps ↗</a>${h.azure_estado ? `<span class="az">${esc(h.azure_estado)}</span>` : ''}${h.sprint ? `<span class="hint">${esc(h.sprint)}</span>` : ''}</div>` : ''}
       </div>
       <div class="d-b">
         <div class="sec"><h4>Estado</h4>
@@ -693,7 +731,7 @@
             <span class="hint">${has.length} registrada${has.length===1?'':'s'}${h.ha_esperadas!=null ? (has.length>=h.ha_esperadas?' · completas ✓':` · faltan ${h.ha_esperadas-has.length}`) : ''}</span></div>
         </div>
         <div class="sec"><h4>HA creadas <span class="mono" style="color:var(--ink-2)">${has.length}</span></h4>
-          ${has.length ? `<ol class="ha-list">${has.map((a,i) => `<li class="ha${haVistas.has(a.id) ? '' : ' enter'}" style="--i:${i}"><span class="i">${i+1}</span><span class="c">${esc(a.codigo)}</span><span class="t${a.titulo?'':' vacio'}">${a.titulo ? esc(a.titulo) : 'Sin título'}</span><button class="del" data-del="${a.id}" title="Eliminar HA" aria-label="Eliminar HA ${esc(a.codigo)}">×</button></li>`).join('')}</ol>` : `<div class="empty">Aún no has registrado HA para esta HU</div>`}
+          ${has.length ? `<ol class="ha-list">${has.map((a,i) => `<li class="ha${haVistas.has(a.id) ? '' : ' enter'}" style="--i:${i}"><span class="i">${i+1}</span><span class="c">${esc(a.codigo)}</span><span class="t${a.titulo?'':' vacio'}">${a.titulo ? esc(a.titulo) : 'Sin título'}${a.azure_estado || a.asignado ? `<span class="meta-az">${a.azure_estado ? `<span class="az">${esc(a.azure_estado)}</span>` : ''}${a.asignado ? esc(a.asignado) : ''}</span>` : ''}</span><button class="del" data-del="${a.id}" title="Eliminar HA" aria-label="Eliminar HA ${esc(a.codigo)}">×</button></li>`).join('')}</ol>` : `<div class="empty">Aún no has registrado HA para esta HU</div>`}
           <form class="add" id="addForm">
             <input id="haCod" class="mono" placeholder="ID de la HA *" inputmode="numeric" required aria-label="ID de la HA (obligatorio)">
             <input id="haTit" placeholder="Título (opcional)" aria-label="Título de la HA (opcional)">
@@ -752,6 +790,34 @@
     } catch (err) { console.error(err); }
   }
 
+  // ---------------- Azure DevOps ----------------
+  const dlgAz = $('#dlgAz');
+  $('#syncAz').onclick = () => { $('#azRes').hidden = true; dlgAz.showModal(); };
+  $('#azCancel').onclick = () => dlgAz.close();
+  $('#formAz').onsubmit = async e => {
+    e.preventDefault();
+    const modo = new FormData($('#formAz')).get('modo');
+    const go = $('#azGo'), btn = $('#syncAz'), res = $('#azRes');
+    go.disabled = true; go.textContent = 'Sincronizando…'; btn.classList.add('girando');
+    res.hidden = true; res.className = 'res';
+    try {
+      const { data, error } = await sb.functions.invoke('sync-azure', { body: { modo } });
+      let d = data;
+      if (error) { try { d = await error.context.json(); } catch { d = { error: error.message }; } }
+      if (d?.error) throw new Error(d.error);
+      if (d.aviso) {
+        res.innerHTML = `<b>${esc(d.sprint)}</b>: ${esc(d.aviso)}` + (d.tipos_en_sprint?.length ? `<br>Tipos encontrados en el sprint: ${d.tipos_en_sprint.map(esc).join(', ')}` : '');
+      } else {
+        res.innerHTML = `<b>${esc(d.sprint)}</b> · ${d.hu_total} HU<br>${d.hu_nuevas} HU nuevas, ${d.hu_actualizadas} actualizadas · ${d.ha_nuevas} HA nuevas, ${d.ha_actualizadas} actualizadas`;
+        toast(`Sprint sincronizado: ${d.hu_nuevas} HU y ${d.ha_nuevas} HA nuevas`);
+        await recargar();
+      }
+      res.hidden = false;
+    } catch (err) {
+      res.className = 'res err'; res.textContent = err.message || String(err); res.hidden = false;
+    } finally { go.disabled = false; go.textContent = 'Sincronizar'; btn.classList.remove('girando'); }
+  };
+
   // ---------------- Arranque ----------------
   async function iniciarApp(){
     $('#login').hidden = true; $('#app').hidden = false;
@@ -759,6 +825,7 @@
     else {
       $('#who').textContent = usuario?.email || ''; $('#logout').hidden = false;
       try { await sb.rpc('reclamar_hu_iniciales'); } catch {}
+      try { const { data } = await sb.from('azure_config').select('owner_id').maybeSingle(); $('#syncAz').hidden = !data; } catch {}
       let t; const deb = () => { clearTimeout(t); t = setTimeout(recargar, 250); };
       sb.channel('tablero-' + usuario.id)
         .on('postgres_changes', { event:'*', schema:'public', table:'hu' }, deb)

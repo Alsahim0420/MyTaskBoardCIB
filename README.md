@@ -39,6 +39,16 @@ Sin `config.js` configurado, la app abre en **modo demo** (guarda solo en el nav
    Opcional: desactiva *Confirm email* para que las cuentas queden activas al registrarse.
 4. **Vercel:** importa este repositorio (framework *Other*, sin build command). Cada push a `main` se publica solo.
 
+## Sincronización con Azure DevOps
+
+El botón **Sincronizar sprint** trae las HU del sprint actual del equipo y sus HA hijas (solo lectura en Azure DevOps).
+
+- Función: `supabase/functions/sync-azure` (Edge Function, requiere sesión).
+- Token: secreto `AZDO_PAT` en Supabase → Edge Functions → Secrets. **Nunca** en el repositorio.
+  Debe ser de una sola organización, con scope **Work Items (Read)** y vencimiento corto.
+- Organización, proyecto y equipo: fila del usuario en `public.azure_config` (ver `schema.sql`). El botón solo aparece a los usuarios habilitados.
+- No modifica el estado, la meta de HA ni las notas del tablero; solo crea las HU/HA que falten y actualiza títulos y estado en Azure.
+
 ## Modelo de datos
 
 | Tabla | Qué guarda |

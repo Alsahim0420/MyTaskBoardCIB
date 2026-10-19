@@ -128,7 +128,30 @@ grant execute on function public.reclamar_hu_iniciales() to authenticated;
 
 alter publication supabase_realtime add table public.hu, public.ha, public.hu_historial;
 
--- 6. Datos iniciales (opcional) -------------------------------------
+-- 6. Integración con Azure DevOps (opcional) ------------------------
+-- La función supabase/functions/sync-azure usa el secreto AZDO_PAT y esta configuración.
+alter table public.hu add column if not exists sprint text;
+alter table public.hu add column if not exists azure_estado text;
+alter table public.hu add column if not exists azure_url text;
+alter table public.hu add column if not exists sincronizado_at timestamptz;
+alter table public.ha add column if not exists azure_estado text;
+alter table public.ha add column if not exists asignado text;
+
+create table if not exists public.azure_config (
+  owner_id   uuid primary key references auth.users(id) on delete cascade,
+  org_url    text not null,   -- ej. https://dev.azure.com/mi-org
+  project    text not null,
+  team       text not null,
+  tipos_hu   text[] not null default array['User Story','Historia de usuario','Product Backlog Item'],
+  created_at timestamptz not null default now()
+);
+alter table public.azure_config enable row level security;
+create policy "azure_config propia lectura" on public.azure_config for select to authenticated
+  using (owner_id = (select auth.uid()));
+-- Habilitar a un usuario (lo hace un administrador desde el SQL Editor):
+-- insert into public.azure_config (owner_id, org_url, project, team) values ('<uuid>', 'https://dev.azure.com/<org>', '<proyecto>', '<equipo>');
+
+-- 7. Datos iniciales (opcional) -------------------------------------
 -- HU sin dueño: las reclama la primera cuenta que inicia sesión.
 -- insert into public.hu (owner_id, codigo, titulo, ha_esperadas, orden) values
 --   (null, '0000001', 'Ejemplo de HU', 2, 0);
