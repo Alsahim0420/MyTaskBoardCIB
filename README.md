@@ -7,7 +7,7 @@ Cada usuario tiene su propia cuenta y solo ve y gestiona sus HU.
 
 ## Qué hace
 
-- Las columnas son los **estados reales del proceso en Azure DevOps** (New, Active, Resolved, Closed…), leídos de Azure. Al sincronizar, cada HU queda en su estado de Azure. En las HU traídas de Azure, mover la tarjeta o cambiar el título se escribe también en Azure DevOps (PAT con Work Items Read & Write).
+- Las columnas son los **estados reales del proceso en Azure DevOps** (New, Active, Resolved, Closed…), leídos de Azure. Al sincronizar, cada HU queda en su estado de Azure. En las HU traídas de Azure, mover la tarjeta, cambiar el título o editar cualquier campo del detalle (asignado, story points, sprint, área, etiquetas, descripción, criterios, campos personalizados, comentarios y enlaces) se escribe en Azure DevOps (PAT con Work Items Read & Write).
 - Por cada HU: meta de **HA esperadas** según su complejidad, lista de HA (ID obligatorio, título opcional), notas e **historial automático** de cambios.
 - Crear, editar (ID y título) y eliminar HU.
 - Ingreso con correo y contraseña; los datos de cada usuario están aislados con Row Level Security.

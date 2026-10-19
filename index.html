@@ -195,6 +195,47 @@
   .azd-all table{width:100%;border-collapse:collapse;font-size:12.5px}
   .azd-all td{border-top:1px solid var(--line);padding:6px 12px;vertical-align:top;overflow-wrap:anywhere}
   .azd-all td:first-child{color:var(--ink-3);width:40%;font-weight:600}
+  /* Edición en línea del detalle de Azure */
+  #azDet.guardando{opacity:.6;pointer-events:none;transition:opacity .2s var(--ease)}
+  .azd-c.ed,.azd-all td.ed{cursor:pointer;transition:background .2s var(--ease)}
+  .azd-grid .azd-c.ed:hover,.azd-grid .azd-c.ed:focus-visible{background:color-mix(in srgb,var(--yellow) 10%,var(--card));outline:none}
+  .azd-all td.ed:hover,.azd-all td.ed:focus-visible{background:color-mix(in srgb,var(--yellow) 10%,transparent);outline:none}
+  .ed-i{font-style:normal;margin-left:6px;opacity:0;color:var(--ink-3);transition:opacity .2s var(--ease);font-size:11px}
+  .azd-c.ed:hover .ed-i,.azd-c.ed:focus-visible .ed-i,.azd-all td.ed:hover .ed-i{opacity:1}
+  .azd-all td.ro{color:var(--ink-2)}
+  .vacio{color:var(--ink-3)} .req{color:#E5484D;font-weight:800}
+  .azd-html.vacio-b{color:var(--ink-3);font-style:italic}
+  .azd-c.editando{background:color-mix(in srgb,var(--yellow) 12%,var(--card))!important}
+  .azd-ctl select,.azd-ctl input,.azd-ctl textarea{width:100%;font:inherit;font-size:13.5px;padding:6px 8px;border:1px solid var(--yellow);border-radius:7px;background:var(--card);color:var(--ink);box-shadow:0 0 0 3px color-mix(in srgb,var(--yellow) 22%,transparent)}
+  .azd-ctl textarea{resize:vertical;min-height:70px}
+  .azd-tags{align-items:center}
+  .azd-tags span{display:inline-flex;align-items:center;gap:4px}
+  .azd-tags span button{background:none;border:none;padding:0 0 0 2px;font-size:13px;line-height:1;color:var(--ink-2);cursor:pointer}
+  .azd-tags span button:hover{color:#E5484D}
+  .azd-tags input{border:1px dashed var(--line-2);background:transparent;border-radius:999px;padding:3px 10px;font-size:11.5px;width:110px;color:var(--ink);transition:width .25s var(--ease),border-color .2s}
+  .azd-tags input:focus{width:170px;border-color:var(--yellow);outline:none}
+  .azd-blk>b{display:flex;align-items:center;gap:8px}
+  .azd-mini{background:none;border:1px solid var(--line-2);color:var(--ink-2);border-radius:7px;padding:3px 9px;font-size:11.5px;font-weight:700;cursor:pointer;transition:border-color .2s,color .2s}
+  .azd-mini:hover{border-color:var(--yellow);color:var(--ink)}
+  .azd-blk>b .azd-mini{margin-left:auto}
+  .azd-newcom{display:flex;gap:8px;align-items:flex-end;margin-bottom:10px}
+  .azd-newcom textarea{flex:1;min-height:40px;font-size:13px;padding:8px 10px;resize:vertical}
+  .azd-newcom .btn{padding:8px 14px;font-size:13px}
+  .azd-x{margin-left:auto;background:none;border:none;color:var(--ink-3);font-size:15px;line-height:1;padding:2px 6px;border-radius:6px;cursor:pointer;transition:all .2s var(--ease)}
+  .azd-x:hover{color:#E5484D;background:color-mix(in srgb,#E5484D 10%,transparent)}
+  .azd-x.confirmar{color:#fff;background:#E5484D;font-size:11px;font-weight:800}
+  .azd-addl{display:flex;gap:6px;margin-top:10px}
+  .azd-addl input{width:140px;padding:6px 9px;font-size:13px;font-family:var(--mono)}
+  .azd-addl select{padding:6px 8px;font-size:13px;border:1px solid var(--line-2);border-radius:8px;background:var(--card);color:var(--ink)}
+  .azd-rte{border:1px solid var(--yellow);border-radius:10px;overflow:hidden;box-shadow:0 0 0 3px color-mix(in srgb,var(--yellow) 18%,transparent);animation:fadeUp .3s var(--ease) both}
+  .azd-rte .tb{display:flex;flex-wrap:wrap;gap:2px;padding:6px;border-bottom:1px solid var(--line);background:var(--panel)}
+  .azd-rte .tb button{background:none;border:none;border-radius:6px;padding:4px 8px;font-size:12.5px;color:var(--ink-2);cursor:pointer}
+  .azd-rte .tb button:hover{background:color-mix(in srgb,var(--ink) 8%,transparent);color:var(--ink)}
+  .azd-rte .azd-html{border:none;border-radius:0;min-height:120px;max-height:360px;outline:none}
+  .azd-rte .acc{display:flex;gap:8px;padding:8px;border-top:1px solid var(--line);background:var(--panel)}
+  .azd-rte .acc .btn{padding:7px 14px;font-size:13px}
+  .ghost-b{background:none;border:1px solid var(--line-2);color:var(--ink-2);border-radius:8px;padding:7px 14px;font-size:13px;font-weight:700;cursor:pointer}
+  .ghost-b:hover{color:var(--ink);border-color:var(--ink-3)}
   .azd-sk{height:14px;border-radius:6px;margin:8px 0;background:linear-gradient(90deg,var(--line) 0%,color-mix(in srgb,var(--line) 40%,transparent) 50%,var(--line) 100%);background-size:200% 100%;animation:sk 1.2s linear infinite}
   @keyframes sk{to{background-position:-200% 0}}
   .hist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;border-left:1px solid var(--line-2);margin-left:4px}
@@ -779,13 +820,7 @@
 
   // HU traídas de Azure: los cambios de estado y título se escriben también en Azure DevOps
   const enAzure = h => !DEMO && !!h?.azure_url && /^\d+$/.test(h.codigo);
-  async function azActualizar(h, cambios){
-    const { data, error } = await sb.functions.invoke('sync-azure', { body: { accion: 'actualizar', id: h.codigo, ...cambios } });
-    let d = data;
-    if (error) { try { d = await error.context.json(); } catch { d = { error: error.message }; } }
-    if (d?.error) throw new Error(d.error);
-    return d;
-  }
+  const azActualizar = (h, cambios) => invocarAz({ accion: 'actualizar', id: h.codigo, ...cambios });
   // ---- Detalle completo del work item (se pide a Azure al abrir la HU) ----
   const DET = new Map();            // codigo -> { estado:'cargando'|'ok'|'error', data, error }
   // Limpieza propia del HTML de Azure (lista blanca de etiquetas y atributos; nada de scripts ni estilos)
@@ -819,74 +854,261 @@
     ['Microsoft.VSTS.Scheduling.RemainingWork','Trabajo restante'], ['Microsoft.VSTS.Scheduling.CompletedWork','Trabajo completado'],
     ['Microsoft.VSTS.Common.Severity','Severidad'], ['Microsoft.VSTS.Common.ValueArea','Área de valor'],
     ['System.IterationPath','Iteración'], ['System.AreaPath','Área'],
+    ['Microsoft.VSTS.Scheduling.StartDate','Fecha de inicio'], ['Microsoft.VSTS.Scheduling.TargetDate','Fecha objetivo'],
     ['System.CreatedBy','Creado por'], ['System.CreatedDate','Creado'], ['System.ChangedBy','Modificado por'], ['System.ChangedDate','Modificado'],
-    ['Microsoft.VSTS.Common.ActivatedDate','Activado'], ['Microsoft.VSTS.Common.ClosedDate','Cerrado'], ['Microsoft.VSTS.Scheduling.TargetDate','Fecha objetivo'],
+    ['Microsoft.VSTS.Common.ActivatedDate','Activado'], ['Microsoft.VSTS.Common.ClosedDate','Cerrado'],
   ];
   const HTML_PRIMERO = ['System.Description','Microsoft.VSTS.Common.AcceptanceCriteria','Microsoft.VSTS.TCM.ReproSteps','Microsoft.VSTS.TCM.SystemInfo'];
+  const extraHTML = new Map();      // codigo -> Set de campos HTML vacíos abiertos para editar
+  const esCampoHTML = c => c.tipo === 'html' || esHTML(c.valor);
+  const rutaCorta = v => String(v ?? '').split('\\').slice(-2).join(' › ');
+  const mostrar = c => {
+    if (c.valor === null || c.valor === undefined || c.valor === '') return '<span class="vacio">—</span>';
+    if (c.ref === 'System.IterationPath' || c.ref === 'System.AreaPath') return esc(rutaCorta(c.valor));
+    return esc(fmtValor(c.valor)).slice(0, 600);
+  };
+  const ICONO_ED = '<i class="ed-i" aria-hidden="true">✎</i>';
+
   function azDetHTML(h){
     const st = DET.get(h.codigo);
     const cab = `<h4 class="azd-h">Detalle en Azure DevOps<button type="button" data-azref ${st?.estado === 'cargando' ? 'disabled' : ''}>${st?.estado === 'cargando' ? 'Cargando…' : '↻ Actualizar'}</button></h4>`;
-    if (!st || st.estado === 'cargando') return cab + '<div class="azd-sk" style="width:90%"></div><div class="azd-sk" style="width:70%"></div><div class="azd-sk" style="width:80%"></div>';
+    if (!st || st.estado === 'cargando' && !st.data) return cab + '<div class="azd-sk" style="width:90%"></div><div class="azd-sk" style="width:70%"></div><div class="azd-sk" style="width:80%"></div>';
     if (st.estado === 'error') return cab + `<div class="empty" style="text-align:left">No pude traer el detalle: ${esc(st.error)}</div>`;
     const d = st.data, mapa = new Map(d.campos.map(c => [c.ref, c]));
-    const usados = new Set(['System.Title','System.WorkItemType','System.Tags']);
-    const celdas = PRINCIPALES.filter(([r]) => mapa.has(r)).map(([r, n]) => { usados.add(r);
-      let v = mapa.get(r).valor; if (r === 'System.IterationPath' || r === 'System.AreaPath') v = String(v).split('\\').slice(-2).join(' › ');
-      return `<div><dt>${esc(n)}</dt><dd>${esc(fmtValor(v))}</dd></div>`; }).join('');
-    const tags = mapa.get('System.Tags') ? String(mapa.get('System.Tags').valor).split(';').map(t => t.trim()).filter(Boolean) : [];
-    const htmls = [...HTML_PRIMERO.filter(r => mapa.has(r)).map(r => mapa.get(r)),
-      ...d.campos.filter(c => !HTML_PRIMERO.includes(c.ref) && esHTML(c.valor) && textoPlano(c.valor))];
-    htmls.forEach(c => usados.add(c.ref));
-    const bloques = htmls.map(c => `<div class="azd-blk"><b>${esc(c.nombre)}</b><div class="azd-html" data-html="${esc(c.ref)}"></div></div>`).join('');
-    const coms = d.comentarios.length ? `<div class="azd-blk"><b>Comentarios (${d.comentarios.length})</b><ul class="azd-com">${d.comentarios.map((c, i) =>
-      `<li><small><b>${esc(c.autor || '—')}</b> · ${esc(fmtFecha(c.fecha))}</small><div class="azd-html" data-com="${i}"></div></li>`).join('')}</ul></div>` : '';
-    const lnks = d.enlaces.length ? `<div class="azd-blk"><b>Enlaces (${d.enlaces.length})</b><ul class="azd-lnk">${d.enlaces.map(l =>
-      `<li><span class="rel">${esc(l.relacion)}</span>${l.url ? `<a href="${esc(l.url)}" target="_blank" rel="noopener">${l.id ? esc(l.id) + ' · ' : ''}${esc(l.titulo || l.url)}</a>` : esc(l.titulo || '—')}${l.tipo ? ` <span class="tipo">${esc(l.tipo)}</span>` : ''}${l.estado ? ` <span class="az">${esc(l.estado)}</span>` : ''}</li>`).join('')}</ul></div>` : '';
-    const resto = d.campos.filter(c => !usados.has(c.ref)).sort((a, b) => a.nombre.localeCompare(b.nombre));
-    const todos = `<details class="azd-all"><summary>Todos los campos (${d.campos.length})</summary><input type="search" placeholder="Buscar campo…" data-azf>
-      <table>${[...d.campos].sort((a, b) => a.nombre.localeCompare(b.nombre)).map(c => `<tr data-n="${esc((c.nombre + ' ' + c.ref).toLowerCase())}"><td title="${esc(c.ref)}">${esc(c.nombre)}</td><td>${esc(fmtValor(c.valor)).slice(0, 600)}</td></tr>`).join('')}</table></details>`;
-    return cab + (celdas ? `<dl class="azd-grid" style="margin:0">${celdas}</dl>` : '') +
-      (tags.length ? `<div class="azd-tags">${tags.map(t => `<span>${esc(t)}</span>`).join('')}</div>` : '') +
-      bloques + coms + lnks + (resto.length || d.campos.length ? todos : '');
+    const ed = c => c && !c.soloLectura;
+
+    const celdas = PRINCIPALES.map(([r, n]) => [mapa.get(r), n]).filter(([c]) => c && (ed(c) || (c.valor !== null && c.valor !== '')))
+      .map(([c, n]) => `<div class="azd-c${ed(c) ? ' ed' : ''}" ${ed(c) ? `data-ed="${esc(c.ref)}" tabindex="0" role="button" aria-label="Editar ${esc(n)}"` : ''}><dt>${esc(n)}${ed(c) ? ICONO_ED : ''}</dt><dd>${mostrar(c)}</dd></div>`).join('');
+
+    const cTags = mapa.get('System.Tags');
+    const tags = cTags?.valor ? String(cTags.valor).split(';').map(t => t.trim()).filter(Boolean) : [];
+    const tagsHTML = (tags.length || ed(cTags)) ? `<div class="azd-tags">${tags.map(t => `<span>${esc(t)}${ed(cTags) ? `<button type="button" data-tagx="${esc(t)}" aria-label="Quitar etiqueta ${esc(t)}">×</button>` : ''}</span>`).join('')}${ed(cTags) ? '<input data-tagadd placeholder="+ etiqueta" aria-label="Agregar etiqueta">' : ''}</div>` : '';
+
+    const abiertos = extraHTML.get(h.codigo) || new Set();
+    const htmls = [...HTML_PRIMERO.map(r => mapa.get(r)).filter(Boolean),
+      ...d.campos.filter(c => !HTML_PRIMERO.includes(c.ref) && esCampoHTML(c) && ((c.valor && textoPlano(c.valor)) || abiertos.has(c.ref)))];
+    const bloques = htmls.map(c => `<div class="azd-blk" data-blk="${esc(c.ref)}"><b>${esc(c.nombre)}${ed(c) ? `<button type="button" class="azd-mini" data-hed="${esc(c.ref)}">✎ Editar</button>` : ''}</b><div class="azd-html" data-html="${esc(c.ref)}"></div></div>`).join('');
+
+    const coms = `<div class="azd-blk"><b>Comentarios (${d.comentarios.length})</b>
+      <div class="azd-newcom"><textarea data-comtxt rows="2" placeholder="Escribe un comentario para Azure DevOps…"></textarea><button type="button" class="btn btn-y" data-comsend>Comentar</button></div>
+      ${d.comentarios.length ? `<ul class="azd-com">${d.comentarios.map((c, i) => `<li><small><b>${esc(c.autor || '—')}</b> · ${esc(fmtFecha(c.fecha))}</small><div class="azd-html" data-com="${i}"></div></li>`).join('')}</ul>` : ''}</div>`;
+
+    const lnks = `<div class="azd-blk"><b>Enlaces (${d.enlaces.length})</b>
+      ${d.enlaces.length ? `<ul class="azd-lnk">${d.enlaces.map((l, i) =>
+        `<li><span class="rel">${esc(l.relacion)}</span>${l.url ? `<a href="${esc(l.url)}" target="_blank" rel="noopener">${l.id ? esc(l.id) + ' · ' : ''}${esc(l.titulo || l.url)}</a>` : esc(l.titulo || '—')}${l.tipo ? ` <span class="tipo">${esc(l.tipo)}</span>` : ''}${l.estado ? ` <span class="az">${esc(l.estado)}</span>` : ''}<button type="button" class="azd-x" data-lq="${i}" title="Quitar enlace" aria-label="Quitar enlace">×</button></li>`).join('')}</ul>` : ''}
+      <div class="azd-addl"><input data-lid placeholder="ID del work item" inputmode="numeric" aria-label="ID del work item a enlazar"><select data-ltipo aria-label="Tipo de enlace"><option value="related">Relacionado</option><option value="parent">Padre</option><option value="child">Hijo</option><option value="predecessor">Predecesor</option><option value="successor">Sucesor</option></select><button type="button" class="azd-mini" data-ladd>Enlazar</button></div></div>`;
+
+    const filas = [...d.campos].sort((a, b) => (a.valor === null) - (b.valor === null) || a.nombre.localeCompare(b.nombre));
+    const todos = `<details class="azd-all"><summary>Todos los campos (${d.campos.length}) <span class="hint" style="font-weight:600">· ${d.campos.filter(c => !c.soloLectura).length} editables</span></summary><input type="search" placeholder="Buscar campo…" data-azf>
+      <table>${filas.map(c => `<tr data-n="${esc((c.nombre + ' ' + c.ref).toLowerCase())}"><td title="${esc(c.ref)}">${esc(c.nombre)}${c.requerido ? ' <span class="req" title="Obligatorio">*</span>' : ''}</td><td class="${ed(c) ? 'ed' : 'ro'}" ${ed(c) ? `data-ed="${esc(c.ref)}" tabindex="0" role="button"` : 'title="Solo lectura en Azure DevOps"'}>${esCampoHTML(c) && c.valor ? esc(textoPlano(c.valor)).slice(0, 300) : mostrar(c)}${ed(c) ? ICONO_ED : ''}</td></tr>`).join('')}</table></details>`;
+
+    return cab + (celdas ? `<dl class="azd-grid" style="margin:0">${celdas}</dl>` : '') + tagsHTML + bloques + coms + lnks + todos;
   }
+
   function pintarHTMLs(cont, d){
     const mapa = new Map(d.campos.map(c => [c.ref, c]));
-    cont.querySelectorAll('[data-html]').forEach(el => el.replaceChildren(limpiarHTML(mapa.get(el.dataset.html)?.valor)));
+    cont.querySelectorAll('[data-html]').forEach(el => {
+      const v = mapa.get(el.dataset.html)?.valor;
+      if (v && textoPlano(v)) el.replaceChildren(limpiarHTML(v)); else { el.classList.add('vacio-b'); el.textContent = 'Sin contenido'; }
+    });
     cont.querySelectorAll('[data-com]').forEach(el => el.replaceChildren(limpiarHTML(d.comentarios[+el.dataset.com]?.texto)));
     cont.querySelectorAll('.azd-html img').forEach(img => {
       const fallo = () => { const a = document.createElement('a'); a.href = img.src; a.target = '_blank'; a.rel = 'noopener'; a.textContent = '🖼 Ver imagen en Azure'; img.replaceWith(a); };
       if (img.complete && !img.naturalWidth) fallo(); else img.addEventListener('error', fallo, { once:true });
     });
   }
+
+  // ---- Llamadas a la función ----
+  async function invocarAz(body){
+    const { data, error } = await sb.functions.invoke('sync-azure', { body });
+    let d = data;
+    if (error) { try { d = await error.context.json(); } catch { d = { error: error.message }; } }
+    if (d?.error) throw new Error(d.error);
+    return d;
+  }
+  async function azGuardar(h, payload, ok){
+    const cont = drawer.querySelector('#azDet');
+    cont?.classList.add('guardando');
+    const st = DET.get(h.codigo); if (st) st.estado = 'cargando';
+    try {
+      const d = await invocarAz({ accion:'editar', id:h.codigo, ...payload });
+      DET.set(h.codigo, { estado:'ok', data:d });
+      const f = new Map(d.campos.map(c => [c.ref, c.valor]));
+      if (f.get('System.Title')) h.titulo = f.get('System.Title');
+      if (f.get('System.State')) h.estado = h.azure_estado = f.get('System.State');
+      if (f.has('System.IterationPath')) h.sprint = String(f.get('System.IterationPath') ?? '').split('\\').pop() || null;
+      conTransicion(render);
+      const tit = drawer.querySelector('#dTit'); if (tit && document.activeElement !== tit) tit.value = h.titulo;
+      toast(ok || 'Guardado en Azure DevOps');
+      return true;
+    } catch (e) {
+      if (st) st.estado = 'ok';
+      const m = e.message || String(e); toast(/^Azure/i.test(m) ? m : 'Azure no aceptó el cambio: ' + m);
+      return false;
+    } finally { cont?.classList.remove('guardando'); azDetRepintar(h); }
+  }
+
+  // ---- Editores en línea ----
+  const aLocal = iso => { const t = new Date(iso); if (isNaN(t)) return ''; return new Date(t - t.getTimezoneOffset() * 60000).toISOString().slice(0, 16); };
+  function controlPara(c, d){
+    const v = c.valor;
+    const opciones = (lista, actual, vacio) => (vacio ? '<option value="">—</option>' : '') +
+      [...new Set([...(actual !== null && actual !== undefined && actual !== '' ? [String(actual)] : []), ...lista.map(String)])]
+        .map(o => `<option value="${esc(o)}" ${String(actual) === o ? 'selected' : ''}>${esc(o)}</option>`).join('');
+    if (c.ref === 'System.IterationPath' && d.iteraciones?.length)
+      return `<select>${[...new Set([v, ...[...d.iteraciones].reverse().map(i => i.path)].filter(Boolean))].map(p => `<option value="${esc(p)}" ${p === v ? 'selected' : ''}>${esc(rutaCorta(p))}${(d.iteraciones.find(i => i.path === p) || {}).tf === 'current' ? ' (actual)' : ''}</option>`).join('')}</select>`;
+    if (c.ref === 'System.AreaPath' && d.areas?.length)
+      return `<select>${[...new Set([v, ...d.areas].filter(Boolean))].map(p => `<option value="${esc(p)}" ${p === v ? 'selected' : ''}>${esc(rutaCorta(p))}</option>`).join('')}</select>`;
+    if (c.valores?.length) return `<select>${opciones(c.valores, v, !c.requerido)}</select>`;
+    if (c.tipo === 'boolean') return `<select><option value="">—</option><option value="true" ${v === true ? 'selected' : ''}>Sí</option><option value="false" ${v === false ? 'selected' : ''}>No</option></select>`;
+    if (c.tipo === 'identity') return `<input list="azdIds" value="${esc(c.valorId || v || '')}" placeholder="Nombre o correo"><datalist id="azdIds">${(d.identidades || []).map(p => `<option value="${esc(p.nombre)} <${esc(p.correo)}>"></option>`).join('')}</datalist>`;
+    if (/integer|double/i.test(c.tipo)) return `<input type="number" step="${/integer/i.test(c.tipo) ? 1 : 'any'}" value="${v ?? ''}">`;
+    if (c.tipo === 'dateTime') return `<input type="datetime-local" value="${v ? aLocal(v) : ''}">`;
+    if (c.tipo === 'plainText') return `<textarea rows="3">${esc(v ?? '')}</textarea>`;
+    return `<input type="text" value="${esc(v ?? '')}">`;
+  }
+  function leerControl(c, el){
+    const raw = el.value;
+    if (raw === '' || (typeof raw === 'string' && !raw.trim() && c.tipo !== 'boolean')) return null;
+    if (c.tipo === 'boolean') return raw === 'true';
+    if (/integer|double/i.test(c.tipo) && !c.valores) return Number(raw);
+    if (/integer|double/i.test(c.tipo)) return isNaN(Number(raw)) ? raw : Number(raw);
+    if (c.tipo === 'dateTime') return new Date(raw).toISOString();
+    return raw.trim();
+  }
+  const mismoValor = (c, nuevo) => {
+    const antes = c.tipo === 'identity' ? (c.valorId || c.valor) : c.valor;
+    if ((antes ?? null) === null && nuevo === null) return true;
+    if (c.tipo === 'dateTime' && antes && nuevo) return new Date(antes).getTime() === new Date(nuevo).getTime();
+    if (c.tipo === 'identity' && nuevo && (nuevo === c.valor || nuevo === c.valorId || nuevo.includes(`<${c.valorId}>`))) return true;
+    return String(antes ?? '') === String(nuevo ?? '');
+  };
+  function abrirEditor(h, celda, ref){
+    const d = DET.get(h.codigo)?.data; if (!d || celda.classList.contains('editando')) return;
+    const c = d.campos.find(x => x.ref === ref); if (!c || c.soloLectura) return;
+    if (esCampoHTML(c)) return abrirEditorHTML(h, ref);
+    const zona = celda.querySelector('dd') || celda;
+    celda.classList.add('editando');
+    zona.innerHTML = `<div class="azd-ctl">${controlPara(c, d)}</div>`;
+    const el = zona.querySelector('select, input, textarea');
+    let hecho = false;
+    const cerrar = () => { if (hecho) return; hecho = true; azDetRepintar(h); };
+    const confirmar = async () => {
+      if (hecho) return;
+      const nuevo = leerControl(c, el);
+      if (mismoValor(c, nuevo)) return cerrar();
+      if (c.requerido && nuevo === null) { toast(`${c.nombre} es obligatorio en Azure`); return cerrar(); }
+      hecho = true; el.disabled = true;
+      await azGuardar(h, { campos: { [ref]: nuevo } }, `${c.nombre} actualizado en Azure`);
+    };
+    el.focus(); if (el.select && el.tagName === 'INPUT' && el.type === 'text') el.select();
+    el.addEventListener('keydown', e => {
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); cerrar(); }
+      if (e.key === 'Enter' && (el.tagName !== 'TEXTAREA' || e.ctrlKey || e.metaKey)) { e.preventDefault(); confirmar(); }
+    });
+    if (el.tagName === 'SELECT') el.addEventListener('change', confirmar);
+    el.addEventListener('blur', () => setTimeout(() => { if (!hecho) (el.tagName === 'SELECT' ? cerrar : confirmar)(); }, 120));
+  }
+  function abrirEditorHTML(h, ref){
+    const d = DET.get(h.codigo)?.data; if (!d) return;
+    const c = d.campos.find(x => x.ref === ref); if (!c || c.soloLectura) return;
+    const cont = drawer.querySelector('#azDet');
+    let blk = cont.querySelector(`[data-blk="${CSS.escape(ref)}"]`);
+    if (!blk) { const s = extraHTML.get(h.codigo) || new Set(); s.add(ref); extraHTML.set(h.codigo, s); azDetRepintar(h); blk = cont.querySelector(`[data-blk="${CSS.escape(ref)}"]`); }
+    if (!blk || blk.classList.contains('editando')) return;
+    blk.classList.add('editando');
+    blk.querySelector('details')?.removeAttribute('open');
+    const caja = blk.querySelector('.azd-html');
+    caja.outerHTML = `<div class="azd-rte"><div class="tb" role="toolbar" aria-label="Formato">
+        <button type="button" data-cmd="bold" title="Negrita"><b>B</b></button><button type="button" data-cmd="italic" title="Cursiva"><i>I</i></button><button type="button" data-cmd="underline" title="Subrayado"><u>U</u></button>
+        <button type="button" data-cmd="insertUnorderedList" title="Lista">• Lista</button><button type="button" data-cmd="insertOrderedList" title="Lista numerada">1. Lista</button><button type="button" data-cmd="createLink" title="Enlace">🔗</button><button type="button" data-cmd="removeFormat" title="Quitar formato">⌫ Formato</button></div>
+        <div class="azd-html" contenteditable="true" data-rte></div>
+        <div class="acc"><button type="button" class="btn btn-y" data-hsave>Guardar en Azure</button><button type="button" class="ghost-b" data-hcancel>Cancelar</button></div></div>`;
+    const area = blk.querySelector('[data-rte]');
+    if (c.valor && textoPlano(c.valor)) area.replaceChildren(limpiarHTML(c.valor));
+    area.focus();
+    blk.querySelector('.tb').addEventListener('mousedown', e => {
+      const b = e.target.closest('[data-cmd]'); if (!b) return; e.preventDefault();
+      if (b.dataset.cmd === 'createLink') { const u = prompt('URL del enlace (https://…)'); if (u && /^https?:\/\//i.test(u)) document.execCommand('createLink', false, u); return; }
+      document.execCommand(b.dataset.cmd, false, null);
+    });
+    blk.querySelector('[data-hcancel]').onclick = () => { const s = extraHTML.get(h.codigo); s?.delete(ref); azDetRepintar(h); };
+    blk.querySelector('[data-hsave]').onclick = async e => {
+      const div = document.createElement('div'); div.appendChild(limpiarHTML(area.innerHTML));
+      const nuevo = textoPlano(div.innerHTML) || div.querySelector('img') ? div.innerHTML : null;
+      if (mismoValor(c, nuevo) || ((!c.valor || !textoPlano(c.valor)) && nuevo === null)) { azDetRepintar(h); return; }
+      e.target.disabled = true; e.target.textContent = 'Guardando…';
+      await azGuardar(h, { campos: { [ref]: nuevo } }, `${c.nombre} actualizado en Azure`);
+    };
+  }
+
   function azDetMontar(h){
     const cont = drawer.querySelector('#azDet'); if (!cont) return;
     const st = DET.get(h.codigo);
-    if (st?.estado === 'ok') pintarHTMLs(cont, st.data);
+    if (st?.data) pintarHTMLs(cont, st.data);
     if (!st) azDetCargar(h);
-    cont.onclick = e => { if (e.target.closest('[data-azref]')) azDetCargar(h, true); };
+    const d = () => DET.get(h.codigo)?.data;
+    const tags = () => { const c = d()?.campos.find(x => x.ref === 'System.Tags'); return c?.valor ? String(c.valor).split(';').map(t => t.trim()).filter(Boolean) : []; };
+    cont.onclick = async e => {
+      const t = e.target;
+      if (t.closest('[data-azref]')) return azDetCargar(h, true);
+      if (cont.classList.contains('guardando')) return;
+      const edc = t.closest('[data-ed]'); if (edc && !t.closest('.azd-ctl')) return abrirEditor(h, edc, edc.dataset.ed);
+      const hb = t.closest('[data-hed]'); if (hb) return abrirEditorHTML(h, hb.dataset.hed);
+      const tx = t.closest('[data-tagx]'); if (tx) return azGuardar(h, { campos: { 'System.Tags': tags().filter(x => x !== tx.dataset.tagx).join('; ') || null } }, `Etiqueta "${tx.dataset.tagx}" quitada`);
+      if (t.closest('[data-comsend]')) {
+        const ta = cont.querySelector('[data-comtxt]'); const txt = ta.value.trim(); if (!txt) return ta.focus();
+        const html = esc(txt).replace(/\n/g, '<br>');
+        if (await azGuardar(h, { comentario: html }, 'Comentario publicado en Azure')) { const n = cont.querySelector('[data-comtxt]'); if (n) n.value = ''; }
+        return;
+      }
+      const lq = t.closest('[data-lq]');
+      if (lq) {
+        if (!lq.classList.contains('confirmar')) { lq.classList.add('confirmar'); lq.textContent = '¿Quitar?'; setTimeout(() => { if (lq.isConnected) { lq.classList.remove('confirmar'); lq.textContent = '×'; } }, 3500); return; }
+        const l = d()?.enlaces[+lq.dataset.lq]; if (!l) return;
+        return azGuardar(h, { enlace: { quitar: { ref: l.ref, rel: l.rel } } }, 'Enlace quitado en Azure');
+      }
+      if (t.closest('[data-ladd]')) return agregarEnlace();
+    };
+    const agregarEnlace = () => {
+      const inp = cont.querySelector('[data-lid]'); const idL = (inp.value.match(/\d+/) || [])[0];
+      if (!idL) { toast('Escribe el ID del work item a enlazar'); return inp.focus(); }
+      return azGuardar(h, { enlace: { agregar: { id: Number(idL), tipo: cont.querySelector('[data-ltipo]').value } } }, `Enlace con ${idL} creado en Azure`);
+    };
+    cont.onkeydown = e => {
+      const t = e.target;
+      if (e.key === 'Enter' && t.matches('[data-tagadd]')) {
+        e.preventDefault(); const v = t.value.trim().replace(/;/g, ','); if (!v) return;
+        if (tags().some(x => x.toLowerCase() === v.toLowerCase())) { t.value = ''; return; }
+        azGuardar(h, { campos: { 'System.Tags': [...tags(), v].join('; ') } }, `Etiqueta "${v}" agregada`);
+      }
+      if (e.key === 'Enter' && t.matches('[data-lid]')) { e.preventDefault(); agregarEnlace(); }
+      if (e.key === 'Enter' && t.matches('[data-ed]')) { e.preventDefault(); abrirEditor(h, t, t.dataset.ed); }
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && t.matches('[data-comtxt]')) { e.preventDefault(); cont.querySelector('[data-comsend]').click(); }
+    };
     cont.oninput = e => { if (!e.target.matches('[data-azf]')) return; const f = e.target.value.trim().toLowerCase();
       cont.querySelectorAll('.azd-all tr').forEach(tr => tr.hidden = !!f && !tr.dataset.n.includes(f)); };
   }
   async function azDetCargar(h, forzar){
     if (DET.get(h.codigo)?.estado === 'cargando') return;
-    DET.set(h.codigo, { estado:'cargando' }); azDetRepintar(h);
+    const previo = DET.get(h.codigo)?.data;
+    DET.set(h.codigo, { estado:'cargando', data: previo }); azDetRepintar(h);
     try {
-      const { data, error } = await sb.functions.invoke('sync-azure', { body: { accion: 'detalle', id: h.codigo } });
-      let d = data;
-      if (error) { try { d = await error.context.json(); } catch { d = { error: error.message }; } }
-      if (d?.error) throw new Error(d.error);
+      const d = await invocarAz({ accion: 'detalle', id: h.codigo });
       DET.set(h.codigo, { estado:'ok', data:d });
       if (forzar) toast('Detalle actualizado desde Azure');
-    } catch (e) { DET.set(h.codigo, { estado:'error', error: e.message || String(e) }); }
+    } catch (e) { DET.set(h.codigo, previo ? { estado:'ok', data:previo } : { estado:'error', error: e.message || String(e) }); if (previo) toast('No pude actualizar: ' + (e.message || e)); }
     azDetRepintar(h);
   }
   function azDetRepintar(h){
     if (abierta !== h.id) return;
     const cont = drawer.querySelector('#azDet'); if (!cont) return;
-    const abiertoTodos = cont.querySelector('.azd-all')?.open;
+    const todos = cont.querySelector('.azd-all'), abiertoTodos = todos?.open, filtroT = cont.querySelector('[data-azf]')?.value || '';
+    const borrador = cont.querySelector('[data-comtxt]')?.value || '';
     cont.innerHTML = azDetHTML(h);
-    if (abiertoTodos) cont.querySelector('.azd-all')?.setAttribute('open', '');
-    const st = DET.get(h.codigo); if (st?.estado === 'ok') pintarHTMLs(cont, st.data);
+    if (abiertoTodos) { cont.querySelector('.azd-all')?.setAttribute('open', ''); const f = cont.querySelector('[data-azf]'); if (f && filtroT) { f.value = filtroT; f.dispatchEvent(new Event('input', { bubbles:true })); } }
+    const ta = cont.querySelector('[data-comtxt]'); if (ta && borrador) ta.value = borrador;
+    const st = DET.get(h.codigo); if (st?.data) pintarHTMLs(cont, st.data);
   }
 
   async function mover(id, estado){
@@ -981,7 +1203,7 @@
     const has = haDe(h.id);
     setTimeout(() => has.forEach(a => haVistas.add(a.id)), 0);
     const foco = document.activeElement;
-    if (foco && drawer.contains(foco) && foco.matches('textarea, .cod, .tit, #haCod, #haTit, [data-azf]')) return; // no pisar mientras escribe
+    if (foco && drawer.contains(foco) && (foco.matches('textarea, .cod, .tit, #haCod, #haTit') || (foco.closest('#azDet') && foco.matches('input, textarea, select, [contenteditable]')))) return; // no pisar mientras escribe
     drawer.innerHTML = `
       <div class="d-h">
         <div class="row"><span class="hint">HU</span><input class="cod" id="dCod" value="${esc(h.codigo)}" aria-label="ID de la HU" ${enAzure(h) ? 'readonly title="El ID viene de Azure DevOps"' : ''}><button class="x" id="cerrar" aria-label="Cerrar">×</button></div>
