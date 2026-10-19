@@ -1,4 +1,4 @@
-// Sincroniza las HU del sprint actual (y sus HA hijas) desde Azure DevOps al tablero.
+// Sincroniza HU (del sprint actual o bajo un work item dado) y sus HA hijas desde Azure DevOps al tablero.
 // - El PAT vive en el secreto AZDO_PAT (Supabase > Edge Functions > Secrets). Nunca en el repo.
 // - La organización, proyecto y equipo se leen de public.azure_config del usuario que llama.
 // - Solo lectura en Azure DevOps. En el tablero crea/actualiza HU y HA sin tocar estado, meta ni notas.
@@ -37,7 +37,10 @@ Deno.serve(async (req) => {
     if (!pat) return json({ error: "Falta el secreto AZDO_PAT en Supabase." }, 500);
 
     const body = await req.json().catch(() => ({}));
-    const modo: "mias" | "todas" = body?.modo === "todas" ? "todas" : "mias";
+    const modo: "mias" | "todas" | "id" = body?.modo === "todas" ? "todas" : body?.modo === "id" ? "id" : "mias";
+    const idBase = Number(String(body?.id ?? "").replace(/\D/g, ""));
+    const hermanas = body?.hermanas !== false;
+    if (modo === "id" && !idBase) return json({ error: "Escribe el ID de una HU, Feature o Epic." }, 400);
 
     const org = String(cfg.org_url).replace(/\/+$/, "");
     const proj = encodeURIComponent(cfg.project);
@@ -68,12 +71,7 @@ Deno.serve(async (req) => {
       az(`${org}/${proj}/${team}/_apis/wit/wiql?api-version=7.1`, { method: "POST", body: JSON.stringify({ query }) });
     const q = (s: string) => s.replace(/'/g, "''");
 
-    // 1) Sprint actual del equipo
-    const iters = await az(`${org}/${proj}/${team}/_apis/work/teamsettings/iterations?$timeframe=current&api-version=7.1`);
-    const it = iters?.value?.[0];
-    if (!it) return json({ error: "El equipo no tiene un sprint actual configurado." }, 404);
-    const sprint: string = it.name;
-    const path: string = it.path;
+    const sprintDe = (w?: WI) => String(w?.fields["System.IterationPath"] ?? "").split("\\").pop() || null;
 
     // Detalle de work items (lotes de 200)
     async function lote(ids: number[]): Promise<WI[]> {
@@ -92,22 +90,57 @@ Deno.serve(async (req) => {
     }
     const tiposHU = new Set((cfg.tipos_hu as string[]).map((t) => t.toLowerCase()));
     const esHU = (w?: WI) => !!w && tiposHU.has(String(w.fields["System.WorkItemType"]).toLowerCase());
-    const diag: Record<string, unknown> = { sprint, ruta: path };
+    const diag: Record<string, unknown> = {};
+    const descendientes = async (id: number, recursivo: boolean) => {
+      const r = await wiql(
+        `SELECT [System.Id] FROM WorkItemLinks
+         WHERE ([Source].[System.Id] = ${id}) AND ([System.Links.LinkType] = 'System.LinkTypes.Hierarchy-Forward')
+         MODE (${recursivo ? "Recursive" : "MayContain"})`,
+      );
+      return (r.workItemRelations ?? []).filter((x: any) => x.source).map((x: any) => x.target.id as number);
+    };
 
-    // 2) Determinar las HU a traer: mis work items (o todos) del sprint y su HU padre
-    const filtro = modo === "mias" ? " AND [System.AssignedTo] = @Me" : "";
-    const r0 = await wiql(`SELECT [System.Id] FROM WorkItems WHERE [System.IterationPath] UNDER '${q(path)}'${filtro}`);
-    const base = await lote((r0.workItems ?? []).map((w: any) => w.id));
-    diag.items = base.length;
-    diag.tipos = [...new Set(base.map((w) => w.fields["System.WorkItemType"]))];
+    // 2) Determinar las HU a traer
     const set = new Set<number>();
-    for (const w of base) {
-      if (esHU(w)) set.add(w.id);
-      else if (w.fields["System.Parent"]) set.add(Number(w.fields["System.Parent"]));
+    if (modo === "id") {
+      const [w] = await lote([idBase]);
+      if (!w) return json({ error: `No encontré el work item ${idBase} o tu token no tiene acceso a él.` }, 404);
+      diag.base = `${w.fields["System.WorkItemType"]} ${idBase}: ${w.fields["System.Title"]}`;
+      const tipo = String(w.fields["System.WorkItemType"]);
+      const contenedor = /feature|epic|[ée]pica|iniciativa|caracter/i.test(tipo);
+      if (!contenedor) {
+        // Es una HU (o similar): ella y, opcionalmente, sus hermanas del mismo tipo
+        set.add(idBase);
+        const padre = Number(w.fields["System.Parent"] || 0);
+        if (hermanas && padre) {
+          const sib = await lote(await descendientes(padre, false));
+          for (const x of sib) if (x.fields["System.WorkItemType"] === tipo) set.add(x.id);
+          diag.items = sib.length;
+        }
+      } else {
+        const desc = await lote(await descendientes(idBase, true));
+        diag.items = desc.length;
+        diag.tipos = [...new Set(desc.map((x) => x.fields["System.WorkItemType"]))];
+        for (const x of desc) if (esHU(x)) set.add(x.id);
+      }
+    } else {
+      const iters = await az(`${org}/${proj}/${team}/_apis/work/teamsettings/iterations?$timeframe=current&api-version=7.1`);
+      const it = iters?.value?.[0];
+      if (!it) return json({ error: "El equipo no tiene un sprint actual configurado." }, 404);
+      diag.sprint = it.name; diag.ruta = it.path;
+      const filtro = modo === "mias" ? " AND [System.AssignedTo] = @Me" : "";
+      const r0 = await wiql(`SELECT [System.Id] FROM WorkItems WHERE [System.IterationPath] UNDER '${q(it.path)}'${filtro}`);
+      const base = await lote((r0.workItems ?? []).map((w: any) => w.id));
+      diag.items = base.length;
+      diag.tipos = [...new Set(base.map((w) => w.fields["System.WorkItemType"]))];
+      for (const w of base) {
+        if (esHU(w)) set.add(w.id);
+        else if (w.fields["System.Parent"]) set.add(Number(w.fields["System.Parent"]));
+      }
+      diag.sin_padre = base.filter((w) => !esHU(w) && !w.fields["System.Parent"]).length;
     }
     const huIds = [...set];
-    diag.sin_padre = base.filter((w) => !esHU(w) && !w.fields["System.Parent"]).length;
-    if (!huIds.length) return json({ ...diag, modo, hu_total: 0, aviso: "No encontré HU para traer en el sprint actual." });
+    if (!huIds.length) return json({ ...diag, modo, hu_total: 0, aviso: modo === "id" ? "No encontré HU bajo ese work item." : "No encontré HU para traer en el sprint actual." });
 
     // 3) Hijas (HA) de esas HU, estén o no en el sprint
     const hijos = new Map<number, number[]>(huIds.map((id) => [id, []]));
@@ -134,14 +167,14 @@ Deno.serve(async (req) => {
     if (e1) throw e1;
     const porCodigo = new Map((existentes ?? []).map((h: any) => [h.codigo, h]));
     let orden = (existentes ?? []).reduce((m: number, h: any) => Math.max(m, h.orden ?? 0), -1) + 1;
-    const res = { ...diag, sprint, modo, hu_total: huIds.length, hu_nuevas: 0, hu_actualizadas: 0, ha_nuevas: 0, ha_actualizadas: 0 };
+    const res = { ...diag, modo, hu_total: huIds.length, hu_nuevas: 0, hu_actualizadas: 0, ha_nuevas: 0, ha_actualizadas: 0 };
 
     for (const id of huIds) {
       const w = det.get(id); if (!w) continue;
       const codigo = String(id);
       const campos = {
         titulo: w.fields["System.Title"],
-        sprint,
+        sprint: sprintDe(w),
         azure_estado: w.fields["System.State"],
         azure_url: `${org}/${proj}/_workitems/edit/${id}`,
         sincronizado_at: ahora,

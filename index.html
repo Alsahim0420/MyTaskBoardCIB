@@ -343,6 +343,9 @@
   .opt small{display:block;font-weight:400;color:var(--ink-3);font-size:12.5px;margin-top:2px}
   .opt:has(input:checked){border-color:var(--yellow);background:color-mix(in srgb,var(--yellow) 12%,transparent)}
   .opt input{margin-top:3px;accent-color:#2C2A29}
+  .az-id{display:flex;flex-direction:column;gap:8px;padding:2px 2px 0}
+  .chk{flex-direction:row!important;align-items:center;gap:8px!important;font-weight:600!important;font-size:13px!important}
+  .chk input{accent-color:#2C2A29;width:16px;height:16px}
   .res{font-size:13.5px;line-height:1.5;border-radius:10px;padding:10px 12px;background:color-mix(in srgb,var(--ink) 5%,transparent)}
   .res.err{background:color-mix(in srgb,var(--danger) 10%,transparent);color:var(--danger)}
   [hidden]{display:none!important}
@@ -427,6 +430,11 @@
     <div class="opts">
       <label class="opt"><input type="radio" name="modo" value="mias" checked><span>Solo mis HU<small>Las asignadas a mí o que tienen HA asignadas a mí</small></span></label>
       <label class="opt"><input type="radio" name="modo" value="todas"><span>Todo el sprint del equipo<small>Todas las HU del sprint actual</small></span></label>
+      <label class="opt"><input type="radio" name="modo" value="id"><span>Importar por ID<small>Una HU (y sus hermanas de la misma Feature) o todas las HU de una Feature/Epic, en cualquier estado</small></span></label>
+      <div id="azIdBox" class="az-id" hidden>
+        <input id="azId" class="mono" inputmode="numeric" placeholder="ID del work item, ej. 7906266" aria-label="ID del work item">
+        <label class="chk"><input type="checkbox" id="azHerm" checked> Incluir las demás HU de la misma Feature</label>
+      </div>
     </div>
     <div id="azRes" class="res" hidden></div>
     <div class="row-end">
@@ -793,26 +801,32 @@
   // ---------------- Azure DevOps ----------------
   const dlgAz = $('#dlgAz');
   $('#syncAz').onclick = () => { $('#azRes').hidden = true; dlgAz.showModal(); };
+  $('#formAz').addEventListener('change', () => {
+    const esId = new FormData($('#formAz')).get('modo') === 'id';
+    $('#azIdBox').hidden = !esId; if (esId) setTimeout(() => $('#azId').focus(), 0);
+  });
   $('#azCancel').onclick = () => dlgAz.close();
   $('#formAz').onsubmit = async e => {
     e.preventDefault();
     const modo = new FormData($('#formAz')).get('modo');
+    const id = $('#azId').value.trim();
+    if (modo === 'id' && !/^\d+$/.test(id)) { const r = $('#azRes'); r.className = 'res err'; r.textContent = 'Escribe el ID numérico del work item.'; r.hidden = false; return; }
     const go = $('#azGo'), btn = $('#syncAz'), res = $('#azRes');
     go.disabled = true; go.textContent = 'Sincronizando…'; btn.classList.add('girando');
     res.hidden = true; res.className = 'res';
     try {
-      const { data, error } = await sb.functions.invoke('sync-azure', { body: { modo } });
+      const { data, error } = await sb.functions.invoke('sync-azure', { body: { modo, id, hermanas: $('#azHerm').checked } });
       let d = data;
       if (error) { try { d = await error.context.json(); } catch { d = { error: error.message }; } }
       if (d?.error) throw new Error(d.error);
       if (d.aviso) {
-        res.innerHTML = `<b>${esc(d.sprint)}</b>: ${esc(d.aviso)}<br>Work items encontrados: ${d.items ?? 0}` +
+        res.innerHTML = `<b>${esc(d.sprint || d.base || '')}</b>: ${esc(d.aviso)}<br>Work items encontrados: ${d.items ?? 0}` +
           (d.tipos?.length ? ` (${d.tipos.map(esc).join(', ')})` : '') +
           (d.sin_padre ? `<br>${d.sin_padre} sin HU padre.` : '') +
-          `<br><span class="hint">Ruta: ${esc(d.ruta || '')}</span>`;
+          (d.ruta ? `<br><span class="hint">Ruta: ${esc(d.ruta)}</span>` : '');
       } else {
-        res.innerHTML = `<b>${esc(d.sprint)}</b> · ${d.hu_total} HU<br>${d.hu_nuevas} HU nuevas, ${d.hu_actualizadas} actualizadas · ${d.ha_nuevas} HA nuevas, ${d.ha_actualizadas} actualizadas`;
-        toast(`Sprint sincronizado: ${d.hu_nuevas} HU y ${d.ha_nuevas} HA nuevas`);
+        res.innerHTML = `<b>${esc(d.sprint || d.base || '')}</b> · ${d.hu_total} HU<br>${d.hu_nuevas} HU nuevas, ${d.hu_actualizadas} actualizadas · ${d.ha_nuevas} HA nuevas, ${d.ha_actualizadas} actualizadas`;
+        toast(`Sincronizado: ${d.hu_nuevas} HU y ${d.ha_nuevas} HA nuevas`);
         await recargar();
       }
       res.hidden = false;
