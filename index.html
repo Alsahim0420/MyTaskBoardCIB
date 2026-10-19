@@ -806,7 +806,10 @@
       if (error) { try { d = await error.context.json(); } catch { d = { error: error.message }; } }
       if (d?.error) throw new Error(d.error);
       if (d.aviso) {
-        res.innerHTML = `<b>${esc(d.sprint)}</b>: ${esc(d.aviso)}` + (d.tipos_en_sprint?.length ? `<br>Tipos encontrados en el sprint: ${d.tipos_en_sprint.map(esc).join(', ')}` : '');
+        res.innerHTML = `<b>${esc(d.sprint)}</b>: ${esc(d.aviso)}<br>Work items encontrados: ${d.items ?? 0}` +
+          (d.tipos?.length ? ` (${d.tipos.map(esc).join(', ')})` : '') +
+          (d.sin_padre ? `<br>${d.sin_padre} sin HU padre.` : '') +
+          `<br><span class="hint">Ruta: ${esc(d.ruta || '')}</span>`;
       } else {
         res.innerHTML = `<b>${esc(d.sprint)}</b> · ${d.hu_total} HU<br>${d.hu_nuevas} HU nuevas, ${d.hu_actualizadas} actualizadas · ${d.ha_nuevas} HA nuevas, ${d.ha_actualizadas} actualizadas`;
         toast(`Sprint sincronizado: ${d.hu_nuevas} HU y ${d.ha_nuevas} HA nuevas`);

@@ -75,37 +75,7 @@ Deno.serve(async (req) => {
     const sprint: string = it.name;
     const path: string = it.path;
 
-    // 2) HU del sprint con sus hijas
-    const tipos = (cfg.tipos_hu as string[]).map((t) => `'${q(t)}'`).join(",");
-    const links = await wiql(
-      `SELECT [System.Id] FROM WorkItemLinks
-       WHERE ([Source].[System.WorkItemType] IN (${tipos}) AND [Source].[System.IterationPath] = '${q(path)}')
-         AND ([System.Links.LinkType] = 'System.LinkTypes.Hierarchy-Forward')
-       MODE (MayContain)`,
-    );
-    const hijos = new Map<number, number[]>();
-    for (const rel of links.workItemRelations ?? []) {
-      if (!rel.source) { if (!hijos.has(rel.target.id)) hijos.set(rel.target.id, []); }
-      else hijos.set(rel.source.id, [...(hijos.get(rel.source.id) ?? []), rel.target.id]);
-    }
-
-    if (hijos.size === 0) {
-      // Ayuda de diagnóstico: qué tipos hay en el sprint
-      const todos = await wiql(`SELECT [System.Id] FROM WorkItems WHERE [System.IterationPath] = '${q(path)}'`);
-      const ids = (todos.workItems ?? []).slice(0, 200).map((w: any) => w.id);
-      const tiposVistos = ids.length ? [...new Set((await lote(ids)).map((w) => w.fields["System.WorkItemType"]))] : [];
-      return json({ sprint, hu_total: 0, aviso: "No encontré HU en el sprint con los tipos configurados.", tipos_en_sprint: tiposVistos });
-    }
-
-    // 3) Mis work items del sprint (para el modo "mías")
-    const mias = new Set<number>();
-    if (modo === "mias") {
-      const r = await wiql(`SELECT [System.Id] FROM WorkItems WHERE [System.IterationPath] = '${q(path)}' AND [System.AssignedTo] = @Me`);
-      for (const w of r.workItems ?? []) mias.add(w.id);
-    }
-    const huIds = [...hijos.keys()].filter((id) => modo === "todas" || mias.has(id) || (hijos.get(id) ?? []).some((c) => mias.has(c)));
-
-    // 4) Detalle de HU y HA
+    // Detalle de work items (lotes de 200)
     async function lote(ids: number[]): Promise<WI[]> {
       const out: WI[] = [];
       for (let i = 0; i < ids.length; i += 200) {
@@ -113,13 +83,47 @@ Deno.serve(async (req) => {
           method: "POST",
           body: JSON.stringify({
             ids: ids.slice(i, i + 200),
-            fields: ["System.Id", "System.Title", "System.WorkItemType", "System.State", "System.AssignedTo"],
+            fields: ["System.Id", "System.Title", "System.WorkItemType", "System.State", "System.AssignedTo", "System.Parent", "System.IterationPath"],
           }),
         });
         out.push(...(r.value ?? []));
       }
       return out;
     }
+    const tiposHU = new Set((cfg.tipos_hu as string[]).map((t) => t.toLowerCase()));
+    const esHU = (w?: WI) => !!w && tiposHU.has(String(w.fields["System.WorkItemType"]).toLowerCase());
+    const diag: Record<string, unknown> = { sprint, ruta: path };
+
+    // 2) Determinar las HU a traer: mis work items (o todos) del sprint y su HU padre
+    const filtro = modo === "mias" ? " AND [System.AssignedTo] = @Me" : "";
+    const r0 = await wiql(`SELECT [System.Id] FROM WorkItems WHERE [System.IterationPath] UNDER '${q(path)}'${filtro}`);
+    const base = await lote((r0.workItems ?? []).map((w: any) => w.id));
+    diag.items = base.length;
+    diag.tipos = [...new Set(base.map((w) => w.fields["System.WorkItemType"]))];
+    const set = new Set<number>();
+    for (const w of base) {
+      if (esHU(w)) set.add(w.id);
+      else if (w.fields["System.Parent"]) set.add(Number(w.fields["System.Parent"]));
+    }
+    const huIds = [...set];
+    diag.sin_padre = base.filter((w) => !esHU(w) && !w.fields["System.Parent"]).length;
+    if (!huIds.length) return json({ ...diag, modo, hu_total: 0, aviso: "No encontré HU para traer en el sprint actual." });
+
+    // 3) Hijas (HA) de esas HU, estén o no en el sprint
+    const hijos = new Map<number, number[]>(huIds.map((id) => [id, []]));
+    for (let i = 0; i < huIds.length; i += 100) {
+      const ids = huIds.slice(i, i + 100).join(",");
+      const links = await wiql(
+        `SELECT [System.Id] FROM WorkItemLinks
+         WHERE ([Source].[System.Id] IN (${ids}))
+           AND ([System.Links.LinkType] = 'System.LinkTypes.Hierarchy-Forward')
+         MODE (MayContain)`,
+      );
+      for (const rel of links.workItemRelations ?? []) {
+        if (rel.source && hijos.has(rel.source.id)) hijos.get(rel.source.id)!.push(rel.target.id);
+      }
+    }
+
     const todosIds = [...new Set(huIds.flatMap((id) => [id, ...(hijos.get(id) ?? [])]))];
     const det = new Map((await lote(todosIds)).map((w) => [w.id, w]));
     const asignado = (w?: WI) => w?.fields["System.AssignedTo"]?.displayName ?? null;
@@ -130,7 +134,7 @@ Deno.serve(async (req) => {
     if (e1) throw e1;
     const porCodigo = new Map((existentes ?? []).map((h: any) => [h.codigo, h]));
     let orden = (existentes ?? []).reduce((m: number, h: any) => Math.max(m, h.orden ?? 0), -1) + 1;
-    const res = { sprint, modo, hu_total: huIds.length, hu_nuevas: 0, hu_actualizadas: 0, ha_nuevas: 0, ha_actualizadas: 0 };
+    const res = { ...diag, sprint, modo, hu_total: huIds.length, hu_nuevas: 0, hu_actualizadas: 0, ha_nuevas: 0, ha_actualizadas: 0 };
 
     for (const id of huIds) {
       const w = det.get(id); if (!w) continue;
